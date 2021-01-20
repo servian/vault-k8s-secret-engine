@@ -1,1 +1,5 @@
-.idea
+# IDE
+.idea/
+
+# Local plugin build folder
+vault/
