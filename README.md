@@ -13,7 +13,7 @@ This keeps the blast radius relatively small in case the credentials get leaked 
 
 ## Build
 ```
-go build -o vault/plugins/vault-plugin-k8s-dynamic-service-accounts cmd/main.go
+go build -o vault/plugins/dsa cmd/main.go
 ```
 
 ## Local development

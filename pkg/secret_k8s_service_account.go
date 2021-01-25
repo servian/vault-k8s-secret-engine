@@ -32,19 +32,19 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 	}
 }
 
-func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage, whatever string) (*logical.Response, error) {
-	fmt.Printf("creating secret: %s", whatever)
+func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage, roleName string, ttl int) (*logical.Response, error) {
+	b.Logger().Info(fmt.Sprintf("creating secret for role: %s with ttl: %d", roleName, ttl))
 	resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
-		"ca.crt":    whatever,
+		"ca.crt":    roleName,
 		"namespace": "some namespace",
 		"token":     "some token",
 	}, map[string]interface{}{
 		"some_internal_field": "some internal field value",
 	})
 
-	dur, err := time.ParseDuration("1m")
+	dur, err := time.ParseDuration(fmt.Sprintf("%ds", ttl))
 	if err != nil {
-		return nil, fmt.Errorf("error: %s occured when generating lease duration", err)
+		return nil, fmt.Errorf("error: %s occured when generating lease duration from ttl: %d", err, ttl)
 	}
 	resp.Secret.MaxTTL = dur
 	resp.Secret.Renewable = false
@@ -53,11 +53,11 @@ func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage,
 }
 
 func (b *backend) renewSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	fmt.Println("renewing secret")
+	b.Logger().Info("renewing secret")
 	return nil, fmt.Errorf("intentionally failing renewal of secret")
 }
 
 func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	fmt.Println("revoking secret")
+	b.Logger().Info("revoking secret")
 	return nil, fmt.Errorf("intentionally failing revokal of secret")
 }
