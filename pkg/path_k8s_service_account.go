@@ -11,6 +11,9 @@ const maxTtlInSeconds = 10
 const keyRoleName = "role_name"
 const keyKubeConfigPath = "kube_config_path"
 const keyTtlSeconds = "ttl_seconds"
+const keyNamespace = "namespace"
+const keyUID = "uid"
+const keyServiceAccountName = "service_account_name"
 
 func pathK8sServiceAccount(b *backend) *framework.Path {
 	return &framework.Path{
@@ -28,6 +31,10 @@ func pathK8sServiceAccount(b *backend) *framework.Path {
 				Type:        framework.TypeInt,
 				Description: fmt.Sprintf("Time to live for the credentials returned. Must be <= %d seconds", maxTtlInSeconds),
 				Default:     maxTtlInSeconds,
+			},
+			keyNamespace: &framework.FieldSchema{
+				Type:        framework.TypeString,
+				Description: "The namespace under which the service account should be created",
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -61,9 +68,10 @@ func (b *backend) handleUpdate(ctx context.Context, req *logical.Request, d *fra
 
 		roleName := d.Get(keyRoleName).(string)
 		kubeConfigPath := d.Get(keyKubeConfigPath).(string)
+		namespace := d.Get(keyNamespace).(string)
 
 		b.Logger().Info(fmt.Sprintf("role name: %s", roleName))
-		return b.secretAccessKeysCreate(ctx, req.Storage, roleName, kubeConfigPath, ttl)
+		return b.secretAccessKeysCreate(ctx, req.Storage, roleName, kubeConfigPath, ttl, namespace)
 	} else {
 		return nil, fmt.Errorf("could not find a role name to associated with the service account")
 	}
