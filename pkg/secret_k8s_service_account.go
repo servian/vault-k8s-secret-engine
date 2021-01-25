@@ -32,8 +32,8 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 	}
 }
 
-func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage, roleName string, ttl int) (*logical.Response, error) {
-	b.Logger().Info(fmt.Sprintf("creating secret for role: %s with ttl: %d", roleName, ttl))
+func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage, roleName string, kubeConfigPath string, ttl int) (*logical.Response, error) {
+	b.Logger().Info(fmt.Sprintf("creating secret for role: %s with ttl: %d via kubeconfig at: %s", roleName, ttl, kubeConfigPath))
 	resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 		"ca.crt":    roleName,
 		"namespace": "some namespace",
