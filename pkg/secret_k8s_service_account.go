@@ -18,17 +18,17 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 	return &framework.Secret{
 		Type: secretAccessKeyType,
 		Fields: map[string]*framework.FieldSchema{
-			"ca.crt": &framework.FieldSchema{
+			keyCACert: &framework.FieldSchema{
 				Type:        framework.TypeString,
-				Description: "CA Cert",
+				Description: "CA Cert to use with the service account",
 			},
 			keyNamespace: &framework.FieldSchema{
 				Type:        framework.TypeString,
-				Description: "Namespace",
+				Description: "Namespace in which the service account was created",
 			},
-			"token": &framework.FieldSchema{
+			keyServiceAccountToken: &framework.FieldSchema{
 				Type:        framework.TypeString,
-				Description: "Token",
+				Description: "The Service account token associated with the newly created service account",
 			},
 			keyServiceAccountUID: &framework.FieldSchema{
 				Type:        framework.TypeString,
@@ -74,6 +74,15 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, kubeConfi
 		return nil, errwrap.Wrapf("the following error occurred when creating a service account: {{err}}", err)
 	}
 
+	secrets, err := b.kubernetesService.GetServiceAccountSecrets(kubeConfigPath, namespace, sa.Name)
+	if err != nil {
+		return nil, errwrap.Wrapf("the following error occurred when getting tokens for a service account: {{err}}", err)
+	}
+	if len(secrets) != 1 {
+		return nil, fmt.Errorf("more than 1 secret found with the newly created service account, this is unexpected for the purposes of this plugin")
+	}
+	b.Logger().Info(fmt.Sprintf("%d tokens available", len(secrets)))
+
 	r, err := b.kubernetesService.CreateRole(kubeConfigPath, n.Name)
 	if err != nil {
 		// TODO: delete service account
@@ -88,14 +97,14 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, kubeConfi
 
 	if sa != nil {
 		resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
-			"ca.crt":              "some bytes",
-			keyNamespace:          n.Name,
-			"token":               "some token",
-			keyKubeConfig:         kubeConfigPath,
-			keyServiceAccountUID:  sa.UID,
-			keyServiceAccountName: sa.Name,
-			keyRoleName:           r.Name,
-			keyRoleBindingName:    rb.Name,
+			keyCACert:              secrets[0].CACert,
+			keyNamespace:           secrets[0].Namespace,
+			keyServiceAccountToken: secrets[0].Token,
+			keyKubeConfig:          kubeConfigPath,
+			keyServiceAccountUID:   sa.UID,
+			keyServiceAccountName:  sa.Name,
+			keyRoleName:            r.Name,
+			keyRoleBindingName:     rb.Name,
 		}, map[string]interface{}{})
 
 		dur, err := time.ParseDuration(fmt.Sprintf("%ds", ttl))

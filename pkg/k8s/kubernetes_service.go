@@ -35,6 +35,13 @@ func (k *KubernetesService) CreateServiceAccount(kubeConfigPath string, namespac
 	if err != nil {
 		return nil, err
 	}
+
+	var secrets []*string
+	for _, item := range sar.Secrets {
+		s := item.String()
+		secrets = append(secrets, &s)
+	}
+
 	return &ServiceAccountDetails{
 		Namespace: sar.Namespace,
 		UID:       fmt.Sprintf("%s", sar.UID),
@@ -179,6 +186,38 @@ func (k *KubernetesService) CreateNamespaceIfNotExists(kubeConfigPath string, na
 		Name:           n.Name,
 		AlreadyExisted: false,
 	}, err
+}
+
+func (k *KubernetesService) GetServiceAccountSecrets(kubeConfigPath string, namespace string, serviceAccountName string) ([]*ServiceAccountSecret, error) {
+	clientSet, err := getClientSet(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	sa, err := clientSet.CoreV1().ServiceAccounts(namespace).Get(serviceAccountName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var secrets []*ServiceAccountSecret
+	for _, secret := range sa.Secrets {
+		secretName := secret.Name
+		token, err := clientSet.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if token != nil {
+			caCert := string(token.Data["ca.crt"])
+			tokenNamespace := string(token.Data["namespace"])
+			token := string(token.Data["token"])
+			secretValue := ServiceAccountSecret{
+				CACert:    caCert,
+				Namespace: tokenNamespace,
+				Token:     token,
+			}
+			secrets = append(secrets, &secretValue)
+		}
+	}
+
+	return secrets, nil
 }
 
 func getClientSet(kubeConfigPath string) (*kubernetes.Clientset, error) {
