@@ -6,17 +6,12 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const secretAccessKeyType = "access_keys"
-const secretNamePrefix = "vault-dsa-"
 const keyKubeConfig = "kubeconfig"
 
 func secretK8sServiceAccount(b *backend) *framework.Secret {
@@ -54,19 +49,18 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 
 func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage, roleName string, kubeConfigPath string, ttl int, namespace string) (*logical.Response, error) {
 	b.Logger().Info(fmt.Sprintf("creating secret for role: %s with ttl: %d via kubeconfig at: %s", roleName, ttl, kubeConfigPath))
-
-	sar, err := createServiceAccount(kubeConfigPath, namespace)
+	sa, err := b.kubernetesService.CreateServiceAccount(kubeConfigPath, namespace)
 	if err != nil {
 		return nil, errwrap.Wrapf("the following error occurred when querying service accounts: {{err}}", err)
 	}
-	if sar != nil {
-		b.Logger().Info(fmt.Sprintf("created service account with name: %s in namespace: %s with uid: %s", sar.Name, sar.Namespace, sar.UID))
+	if sa != nil {
+		b.Logger().Info(fmt.Sprintf("created service account with name: %s in namespace: %s with uid: %s", sa.Name, sa.Namespace, sa.UID))
 		resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 			"ca.crt":              roleName,
-			keyNamespace:          sar.Namespace,
+			keyNamespace:          sa.Namespace,
 			"token":               "some token",
-			keyUID:                sar.UID,
-			keyServiceAccountName: sar.Name,
+			keyUID:                sa.UID,
+			keyServiceAccountName: sa.Name,
 			keyKubeConfig:         kubeConfigPath,
 		}, map[string]interface{}{})
 
@@ -84,41 +78,14 @@ func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage,
 	}
 }
 
-func createServiceAccount(kubeconfig string, namespace string) (*v1.ServiceAccount, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	sa := v1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: secretNamePrefix,
-		},
-	}
-	sar, err := clientset.CoreV1().ServiceAccounts(namespace).Create(&sa)
-	if err != nil {
-		return nil, err
-	}
-	return sar, nil
-}
-
 func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	b.Logger().Info("revoking secret")
+	b.Logger().Info("revoking a service account")
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
-	b.Logger().Info(fmt.Sprintf("serviceAccountName: %s", serviceAccountName))
 	uid := d.Get(keyUID).(string)
-	b.Logger().Info(fmt.Sprintf("uid: %s", uid))
 	namespace := d.Get(keyNamespace).(string)
-	b.Logger().Info(fmt.Sprintf("namespace: %s", namespace))
 	kubeconfig := d.Get(keyKubeConfig).(string)
-	b.Logger().Info(fmt.Sprintf("kubeconfig: %s", kubeconfig))
-
-	b.Logger().Warn(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, uid))
-	err := deleteServiceAccount(b, kubeconfig, namespace, serviceAccountName)
+	b.Logger().Info(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, uid))
+	err := b.kubernetesService.DeleteServiceAccount(kubeconfig, namespace, serviceAccountName)
 	if err != nil {
 		return nil, err
 	}
@@ -127,20 +94,4 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 		keyServiceAccountName: serviceAccountName,
 	}, map[string]interface{}{})
 	return resp, nil
-}
-
-func deleteServiceAccount(b *backend, kubeconfig string, namespace string, name string) error {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return errwrap.Wrapf("error building config from kubeconfig: {{err}}", err)
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return errwrap.Wrapf("error building clientset from kubeconfig: {{err}}", err)
-	}
-	err = clientset.CoreV1().ServiceAccounts(namespace).Delete(name, &metav1.DeleteOptions{})
-	if err != nil {
-		return errwrap.Wrapf("error while deleting a service account: {{err}}", err)
-	}
-	return nil
 }

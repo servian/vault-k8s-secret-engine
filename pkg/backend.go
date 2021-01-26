@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"source.servian.com/eit-integration/common/vault-k8s-dynamic-service-accounts/pkg/k8s"
 	"strings"
 )
 
@@ -15,7 +16,8 @@ credentials for a short-lived k8s service account
 `
 
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	b := Backend()
+	k := k8s.KubernetesService{}
+	b := Backend(&k)
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
 	}
@@ -25,7 +27,8 @@ func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) 
 	return b, nil
 }
 
-func Backend() *backend {
+// TODO: implement a backend InitializeFunc to ensure we can connect to k8s
+func Backend(k k8s.KubernetesInterface) *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
@@ -37,9 +40,11 @@ func Backend() *backend {
 		},
 		BackendType: logical.TypeLogical,
 	}
+	b.kubernetesService = k
 	return &b
 }
 
 type backend struct {
 	*framework.Backend
+	kubernetesService k8s.KubernetesInterface
 }
