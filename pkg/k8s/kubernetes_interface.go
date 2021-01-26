@@ -9,6 +9,8 @@ type KubernetesInterface interface {
 
 	CreateRoleBinding(kubeConfigPath string, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error)
 	DeleteRoleBinding(kubeConfigPath string, namespace string, roleBindingName string) error
+
+	CreateNamespaceIfNotExists(kubeConfigPath string, namespace string) (*NamespaceDetails, error)
 }
 
 type ServiceAccountDetails struct {
@@ -27,4 +29,11 @@ type RoleBindingDetails struct {
 	Namespace string
 	UID       string
 	Name      string
+}
+
+type NamespaceDetails struct {
+	Namespace      string
+	UID            string
+	Name           string
+	AlreadyExisted bool
 }

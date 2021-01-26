@@ -137,6 +137,50 @@ func (k *KubernetesService) DeleteRoleBinding(kubeConfigPath string, namespace s
 	return nil
 }
 
+func (k *KubernetesService) CreateNamespaceIfNotExists(kubeConfigPath string, namespace string) (*NamespaceDetails, error) {
+	clientSet, err := getClientSet(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Implement List Options to do paging
+	namespaces, err := clientSet.CoreV1().Namespaces().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// If the namespace already exists, return its details without creating it
+	for _, item := range namespaces.Items {
+		if item.Name == namespace {
+			return &NamespaceDetails{
+				Namespace:      item.Namespace,
+				UID:            fmt.Sprintf("%s", item.UID),
+				Name:           item.Name,
+				AlreadyExisted: true,
+			}, nil
+		}
+	}
+
+	namespaceResource := v1.Namespace{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+		Spec:   v1.NamespaceSpec{},
+		Status: v1.NamespaceStatus{},
+	}
+	n, err := clientSet.CoreV1().Namespaces().Create(&namespaceResource)
+	if err != nil {
+		return nil, err
+	}
+	return &NamespaceDetails{
+		Namespace:      n.Namespace,
+		UID:            fmt.Sprintf("%s", n.UID),
+		Name:           n.Name,
+		AlreadyExisted: false,
+	}, err
+}
+
 func getClientSet(kubeConfigPath string) (*kubernetes.Clientset, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {

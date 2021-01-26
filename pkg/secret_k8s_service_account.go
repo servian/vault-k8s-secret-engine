@@ -58,25 +58,38 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 // TODO: delete service account, role etc. if any step errors out
 func (b *backend) createSecret(ctx context.Context, s logical.Storage, kubeConfigPath string, ttl int, namespace string) (*logical.Response, error) {
 	b.Logger().Info(fmt.Sprintf("creating secret with ttl: %d via kubeconfig at: %s", ttl, kubeConfigPath))
-	sa, err := b.kubernetesService.CreateServiceAccount(kubeConfigPath, namespace)
+
+	n, err := b.kubernetesService.CreateNamespaceIfNotExists(kubeConfigPath, namespace)
+	if err != nil {
+		return nil, errwrap.Wrapf("the following error occurred when creating a namespace: {{err}}", err)
+	}
+	if n.AlreadyExisted {
+		b.Logger().Info(fmt.Sprintf("namespace: %s already exists", n.Name))
+	} else {
+		b.Logger().Warn(fmt.Sprintf("namespace: %s was created by this vault plugin, it will *not* be deleted automatically as that could have unintended consequences", n.Name))
+	}
+
+	sa, err := b.kubernetesService.CreateServiceAccount(kubeConfigPath, n.Name)
 	if err != nil {
 		return nil, errwrap.Wrapf("the following error occurred when creating a service account: {{err}}", err)
 	}
-	r, err := b.kubernetesService.CreateRole(kubeConfigPath, namespace)
+
+	r, err := b.kubernetesService.CreateRole(kubeConfigPath, n.Name)
 	if err != nil {
 		// TODO: delete service account
 		return nil, errwrap.Wrapf("the following error occurred when creating a role: {{err}}", err)
 	}
-	rb, err := b.kubernetesService.CreateRoleBinding(kubeConfigPath, namespace, sa.Name, r.Name)
+
+	rb, err := b.kubernetesService.CreateRoleBinding(kubeConfigPath, n.Name, sa.Name, r.Name)
 	if err != nil {
 		// TODO: delete service account and role
 		return nil, errwrap.Wrapf("the following error occurred when creating a role binding: {{err}}", err)
 	}
+
 	if sa != nil {
-		b.Logger().Info(fmt.Sprintf("created service account with name: %s in namespace: %s with uid: %s", sa.Name, sa.Namespace, sa.UID))
 		resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 			"ca.crt":              "some bytes",
-			keyNamespace:          sa.Namespace,
+			keyNamespace:          n.Name,
 			"token":               "some token",
 			keyKubeConfig:         kubeConfigPath,
 			keyServiceAccountUID:  sa.UID,
@@ -92,7 +105,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, kubeConfi
 		resp.Secret.TTL = dur
 		resp.Secret.MaxTTL = dur
 		resp.Secret.Renewable = false
-		b.Logger().Info(fmt.Sprintf("service account uid: %s, role uid: %s, role binding uid: %s", sa.UID, r.UID, rb.UID))
+		b.Logger().Info(fmt.Sprintf("namespace uid: %s service account uid: %s, role uid: %s, role binding uid: %s", n.UID, sa.UID, r.UID, rb.UID))
 		b.Logger().Info(fmt.Sprintf("created secret with ttl: %d via kubeconfig at: %s", ttl, kubeConfigPath))
 		return resp, nil
 	} else {
