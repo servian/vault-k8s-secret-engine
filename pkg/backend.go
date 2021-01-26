@@ -14,10 +14,11 @@ const backendHelp = `
 The Vault dynamic service account backend provides on-demand, dynamic 
 credentials for a short-lived k8s service account
 `
+const maxTtlInSeconds = 300
 
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	k := k8s.KubernetesService{}
-	b := Backend(&k)
+	b := Backend(&k, maxTtlInSeconds)
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) 
 }
 
 // TODO: implement a backend InitializeFunc to ensure we can connect to k8s
-func Backend(k k8s.KubernetesInterface) *backend {
+func Backend(k k8s.KubernetesInterface, maxTTLInSeconds int) *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
@@ -41,10 +42,12 @@ func Backend(k k8s.KubernetesInterface) *backend {
 		BackendType: logical.TypeLogical,
 	}
 	b.kubernetesService = k
+	b.maxTTLInSeconds = maxTTLInSeconds
 	return &b
 }
 
 type backend struct {
 	*framework.Backend
+	maxTTLInSeconds   int
 	kubernetesService k8s.KubernetesInterface
 }
