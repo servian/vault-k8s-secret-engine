@@ -46,16 +46,8 @@ func pathK8sServiceAccount(b *backend) *framework.Path {
 				Callback: b.handleUpdate,
 				Summary:  "Create new service account credentials",
 			},
-			logical.ReadOperation: &framework.PathOperation{
-				Callback: b.handleRead,
-				Summary:  "Retrieve service account credentials",
-			},
 		},
 	}
-}
-
-func (b *backend) handleRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	return nil, fmt.Errorf("intentionally failing read")
 }
 
 // TODO: Check if we need to write to WAL in case of a replicated setup
@@ -63,16 +55,15 @@ func (b *backend) handleUpdate(ctx context.Context, req *logical.Request, d *fra
 	if d != nil {
 		ttl := d.Get(keyTtlSeconds).(int)
 		if ttl > maxTtlInSeconds {
-			return nil, fmt.Errorf("%s cannot be more than %d", keyTtlSeconds, ttl)
+			return nil, fmt.Errorf("%s cannot be more than %d", keyTtlSeconds, maxTtlInSeconds)
 		}
 
 		roleName := d.Get(keyRoleName).(string)
 		kubeConfigPath := d.Get(keyKubeConfigPath).(string)
 		namespace := d.Get(keyNamespace).(string)
 
-		b.Logger().Info(fmt.Sprintf("role name: %s", roleName))
 		return b.secretAccessKeysCreate(ctx, req.Storage, roleName, kubeConfigPath, ttl, namespace)
 	} else {
-		return nil, fmt.Errorf("could not find a role name to associated with the service account")
+		return nil, fmt.Errorf("could not find a role name to associate with the service account")
 	}
 }

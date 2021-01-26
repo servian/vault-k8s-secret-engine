@@ -60,7 +60,7 @@ func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage,
 		return nil, errwrap.Wrapf("the following error occurred when querying service accounts: {{err}}", err)
 	}
 	if sar != nil {
-		b.Logger().Info(fmt.Sprintf("Service account with name: %s for namespace: %s with uid: %s was created", sar.Name, sar.Namespace, sar.UID))
+		b.Logger().Info(fmt.Sprintf("created service account with name: %s in namespace: %s with uid: %s", sar.Name, sar.Namespace, sar.UID))
 		resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 			"ca.crt":              roleName,
 			keyNamespace:          sar.Namespace,
@@ -72,8 +72,9 @@ func (b *backend) secretAccessKeysCreate(ctx context.Context, s logical.Storage,
 
 		dur, err := time.ParseDuration(fmt.Sprintf("%ds", ttl))
 		if err != nil {
-			return nil, fmt.Errorf("error: %s occured when generating lease duration from ttl: %d", err, ttl)
+			return nil, errwrap.Wrapf(fmt.Sprintf("ttl: %d could not be parsed due to error: {{err}}", ttl), err)
 		}
+		resp.Secret.TTL = dur
 		resp.Secret.MaxTTL = dur
 		resp.Secret.Renewable = false
 
@@ -107,11 +108,6 @@ func createServiceAccount(kubeconfig string, namespace string) (*v1.ServiceAccou
 
 func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	b.Logger().Info("revoking secret")
-
-	for k, v := range d.Raw {
-		fmt.Printf("Revoke data: %s -> %s\n", k, v)
-	}
-
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
 	b.Logger().Info(fmt.Sprintf("serviceAccountName: %s", serviceAccountName))
 	uid := d.Get(keyUID).(string)
@@ -121,12 +117,12 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	kubeconfig := d.Get(keyKubeConfig).(string)
 	b.Logger().Info(fmt.Sprintf("kubeconfig: %s", kubeconfig))
 
-	b.Logger().Warn(fmt.Sprintf("Deleting service account with name: %s in namespace: %s", serviceAccountName, namespace))
+	b.Logger().Warn(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, uid))
 	err := deleteServiceAccount(b, kubeconfig, namespace, serviceAccountName)
 	if err != nil {
 		return nil, err
 	}
-	b.Logger().Info(fmt.Sprintf("Service account with name: %s for namespace: %s with uid: %s was deleted", serviceAccountName, namespace, uid))
+	b.Logger().Info(fmt.Sprintf("deleted service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, uid))
 	resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 		keyServiceAccountName: serviceAccountName,
 	}, map[string]interface{}{})
@@ -136,17 +132,14 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 func deleteServiceAccount(b *backend, kubeconfig string, namespace string, name string) error {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		b.Logger().Error("err: %s", err)
 		return errwrap.Wrapf("error building config from kubeconfig: {{err}}", err)
 	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		b.Logger().Error("err: %s", err)
 		return errwrap.Wrapf("error building clientset from kubeconfig: {{err}}", err)
 	}
 	err = clientset.CoreV1().ServiceAccounts(namespace).Delete(name, &metav1.DeleteOptions{})
 	if err != nil {
-		b.Logger().Error("err: %s", err)
 		return errwrap.Wrapf("error while deleting a service account: {{err}}", err)
 	}
 	return nil
