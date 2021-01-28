@@ -21,6 +21,11 @@ go build -o vault/plugins/dsa cmd/main.go
 ```
 
 ## Local development
-
+1. Pre-requisites
+   - [Install Golang](https://golang.org/doc/install)
+   - [Install Hashicorp Vault](https://learn.hashicorp.com/tutorials/vault/getting-started-install?in=vault/getting-started)
+   - Spin up a kubernetes cluster (locally or on the cloud)
+      - place a kube config file for the cluster in a local folder
+      - use the fully qualified path of the kube config file as the value for the parameter `kube_config_path` in `local_test.sh`
 1. `./local_build.sh`
 1. `./local_test.sh`
