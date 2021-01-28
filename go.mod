@@ -1,4 +1,4 @@
-module source.servian.com/eit-integration/common/vault-k8s-dynamic-service-accounts
+module github.com/servian/vault-k8s-secret-engine
 
 go 1.15
 

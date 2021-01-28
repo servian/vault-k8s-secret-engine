@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"source.servian.com/eit-integration/common/vault-k8s-dynamic-service-accounts/pkg/k8s"
+	"github.com/servian/vault-k8s-secret-engine/pkg/k8s"
 	"strings"
 )
 

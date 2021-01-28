@@ -1,0 +1,31 @@
+name: Go
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+
+      - name: Build
+        run: go build -o bin/vault-k8s-secret-engine cmd/main.go
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: vault-k8s-secret-engine
+          path: bin/vault-k8s-secret-engine

@@ -4,8 +4,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/plugin"
+	servian "github.com/servian/vault-k8s-secret-engine/pkg"
 	"os"
-	servian "source.servian.com/eit-integration/common/vault-k8s-dynamic-service-accounts/pkg"
 )
 
 func main() {
