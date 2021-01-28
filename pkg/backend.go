@@ -14,7 +14,10 @@ const backendHelp = `
 The Vault dynamic service account backend provides on-demand, dynamic 
 credentials for a short-lived k8s service account
 `
-const maxTtlInSeconds = 300
+const maxTtlInSeconds = 600
+
+// TODO: default value for a ttl to make the ttl parameter optional
+// TODO: set maxTtlInSeconds via plugin configuration, remove hardcoded value
 
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	k := k8s.KubernetesService{}
