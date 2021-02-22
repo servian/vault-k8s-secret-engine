@@ -25,11 +25,6 @@ func pathK8sServiceAccount(b *backend) *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Fully qualified path for the kubeconfig file to use",
 			},
-			keyTtlSeconds: &framework.FieldSchema{
-				Type:        framework.TypeInt,
-				Description: fmt.Sprintf("Time to live for the credentials returned. Must be <= %d seconds", b.maxTTLInSeconds),
-				Default:     b.maxTTLInSeconds,
-			},
 			keyNamespace: &framework.FieldSchema{
 				Type:        framework.TypeString,
 				Description: "The namespace under which the service account should be created",
@@ -52,8 +47,9 @@ func pathK8sServiceAccount(b *backend) *framework.Path {
 func (b *backend) handleUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	if d != nil {
 		ttl := d.Get(keyTtlSeconds).(int)
-		if ttl > b.maxTTLInSeconds {
-			return nil, fmt.Errorf("%s cannot be more than %d", keyTtlSeconds, b.maxTTLInSeconds)
+		maxTTLInSeconds := 300
+		if ttl > maxTTLInSeconds {
+			return nil, fmt.Errorf("%s cannot be more than %d", keyTtlSeconds, maxTTLInSeconds)
 		}
 
 		kubeConfigPath := d.Get(keyKubeConfigPath).(string)

@@ -14,14 +14,13 @@ const backendHelp = `
 The Vault dynamic service account backend provides on-demand, dynamic 
 credentials for a short-lived k8s service account
 `
-const maxTtlInSeconds = 600
 
 // TODO: default value for a ttl to make the ttl parameter optional
 // TODO: set maxTtlInSeconds via plugin configuration, remove hardcoded value
 
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	k := k8s.KubernetesService{}
-	b := Backend(&k, maxTtlInSeconds)
+	b := Backend(&k)
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
 	}
@@ -32,25 +31,30 @@ func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) 
 }
 
 // TODO: implement a backend InitializeFunc to ensure we can connect to k8s
-func Backend(k k8s.KubernetesInterface, maxTTLInSeconds int) *backend {
+func Backend(k k8s.KubernetesInterface) *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
 		Paths: []*framework.Path{
+			configK8sServiceAccount(&b),
 			pathK8sServiceAccount(&b),
 		},
 		Secrets: []*framework.Secret{
 			secretK8sServiceAccount(&b),
 		},
+		PathsSpecial: &logical.Paths{
+			SealWrapStorage: []string{
+				configPath,
+			},
+		},
+		// TODO: Do we need to use `TypeCredential` instead?
 		BackendType: logical.TypeLogical,
 	}
 	b.kubernetesService = k
-	b.maxTTLInSeconds = maxTTLInSeconds
 	return &b
 }
 
 type backend struct {
 	*framework.Backend
-	maxTTLInSeconds   int
 	kubernetesService k8s.KubernetesInterface
 }

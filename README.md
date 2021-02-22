@@ -6,6 +6,7 @@ on-demand (dynamic) credentials for a short-lived [k8s](https://kubernetes.io/) 
 This keeps the blast radius relatively small in case the credentials get leaked or abused.
 
 ## How does it work?
+![overview](./docs/overview.png "Overview")
 
 1. Vault user requests credentials for a given k8s role
 1. Vault plugin creates a service account for that role in k8s
