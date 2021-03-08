@@ -17,7 +17,7 @@ const keyAllowedClusterRoles = "allowed_cluster_roles"
 
 const configPath = "config"
 
-type pluginConfig struct {
+type PluginConfig struct {
 	MaxTTL              int      `json:"max_ttl"`
 	TokenReviewerJWT    string   `json:"token_reviewer_jwt"`
 	KubernetesHost      string   `json:"kubernetes_host"`
@@ -82,7 +82,7 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 	allowedRoles := d.Get(keyAllowedRoles).([]string)
 	allowedClusterRoles := d.Get(keyAllowedClusterRoles).([]string)
 	b.Logger().Info(fmt.Sprintf("TTL specified is: %d", ttl))
-	config := pluginConfig{
+	config := PluginConfig{
 		MaxTTL:              ttl,
 		TokenReviewerJWT:    tokenReviewerJWT,
 		KubernetesHost:      kubernetesHost,
@@ -120,7 +120,7 @@ func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d 
 	}
 }
 
-func (b *backend) config(ctx context.Context, s logical.Storage) (*pluginConfig, error) {
+func (b *backend) config(ctx context.Context, s logical.Storage) (*PluginConfig, error) {
 	raw, err := s.Get(ctx, configPath)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (b *backend) config(ctx context.Context, s logical.Storage) (*pluginConfig,
 	if raw == nil {
 		return nil, nil
 	}
-	conf := &pluginConfig{}
+	conf := &PluginConfig{}
 	if err := json.Unmarshal(raw.Value, conf); err != nil {
 		return nil, err
 	}

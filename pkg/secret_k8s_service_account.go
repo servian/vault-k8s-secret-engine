@@ -3,16 +3,20 @@ package servian
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"time"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const secretAccessKeyType = "service_account_token"
 const keyKubeConfig = "kubeconfig"
+
+type RoleType string
+
+const (
+	RoleTypeRole        RoleType = "Role"
+	RoleTypeClusterRole RoleType = "ClusterRole"
+)
 
 func secretK8sServiceAccount(b *backend) *framework.Secret {
 	return &framework.Secret{
@@ -56,70 +60,21 @@ func secretK8sServiceAccount(b *backend) *framework.Secret {
 }
 
 // TODO: delete service account, role etc. if any step errors out
-func (b *backend) createSecret(ctx context.Context, s logical.Storage, kubeConfigPath string, ttl int, namespace string) (*logical.Response, error) {
-	b.Logger().Info(fmt.Sprintf("creating secret with ttl: %d via kubeconfig at: %s", ttl, kubeConfigPath))
-
-	n, err := b.kubernetesService.CreateNamespaceIfNotExists(kubeConfigPath, namespace)
+func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace string, roleName string, roleType RoleType) (*logical.Response, error) {
+	se, err := s.Get(ctx, configPath)
 	if err != nil {
-		return nil, errwrap.Wrapf("the following error occurred when creating a namespace: {{err}}", err)
+		return nil, err
 	}
-	if n.AlreadyExisted {
-		b.Logger().Info(fmt.Sprintf("namespace: %s already exists", n.Name))
-	} else {
-		b.Logger().Warn(fmt.Sprintf("namespace: %s was created by this vault plugin, it will *not* be deleted automatically as that could have unintended consequences", n.Name))
+	if se == nil {
+		return nil, fmt.Errorf("the plugin is not configured correctly")
 	}
-
-	sa, err := b.kubernetesService.CreateServiceAccount(kubeConfigPath, n.Name)
+	var pluginConfig PluginConfig
+	err = se.DecodeJSON(&pluginConfig)
 	if err != nil {
-		return nil, errwrap.Wrapf("the following error occurred when creating a service account: {{err}}", err)
+		return nil, err
 	}
-
-	secrets, err := b.kubernetesService.GetServiceAccountSecrets(kubeConfigPath, namespace, sa.Name)
-	if err != nil {
-		return nil, errwrap.Wrapf("the following error occurred when getting tokens for a service account: {{err}}", err)
-	}
-	if len(secrets) != 1 {
-		return nil, fmt.Errorf("more than 1 secret found with the newly created service account, this is unexpected for the purposes of this plugin")
-	}
-	b.Logger().Info(fmt.Sprintf("%d tokens available", len(secrets)))
-
-	r, err := b.kubernetesService.CreateRole(kubeConfigPath, n.Name)
-	if err != nil {
-		// TODO: delete service account
-		return nil, errwrap.Wrapf("the following error occurred when creating a role: {{err}}", err)
-	}
-
-	rb, err := b.kubernetesService.CreateRoleBinding(kubeConfigPath, n.Name, sa.Name, r.Name)
-	if err != nil {
-		// TODO: delete service account and role
-		return nil, errwrap.Wrapf("the following error occurred when creating a role binding: {{err}}", err)
-	}
-
-	if sa != nil {
-		resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
-			keyCACert:              secrets[0].CACert,
-			keyNamespace:           secrets[0].Namespace,
-			keyServiceAccountToken: secrets[0].Token,
-			keyKubeConfig:          kubeConfigPath,
-			keyServiceAccountUID:   sa.UID,
-			keyServiceAccountName:  sa.Name,
-			keyRoleName:            r.Name,
-			keyRoleBindingName:     rb.Name,
-		}, map[string]interface{}{})
-
-		dur, err := time.ParseDuration(fmt.Sprintf("%ds", ttl))
-		if err != nil {
-			return nil, errwrap.Wrapf(fmt.Sprintf("ttl: %d could not be parsed due to error: {{err}}", ttl), err)
-		}
-		resp.Secret.TTL = dur
-		resp.Secret.MaxTTL = dur
-		resp.Secret.Renewable = false
-		b.Logger().Info(fmt.Sprintf("namespace uid: %s service account uid: %s, role uid: %s, role binding uid: %s", n.UID, sa.UID, r.UID, rb.UID))
-		b.Logger().Info(fmt.Sprintf("created secret with ttl: %d via kubeconfig at: %s", ttl, kubeConfigPath))
-		return resp, nil
-	} else {
-		return nil, fmt.Errorf("could not return the uid of the newly created service account")
-	}
+	b.Logger().Info(fmt.Sprintf("creating secret with ttl: %d for role: %s in namespace: %s", pluginConfig.MaxTTL, roleName, namespace))
+	return nil, nil
 }
 
 func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
