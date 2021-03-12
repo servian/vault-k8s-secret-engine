@@ -5,6 +5,8 @@ on-demand (dynamic) credentials for a short-lived [k8s](https://kubernetes.io/) 
 
 This keeps the blast radius relatively small in case the credentials get leaked or abused.
 
+*Note:* This plugin is still under active development
+
 ## How does it work?
 ![overview](./docs/overview.png "Overview")
 
