@@ -1,4 +1,4 @@
-package k8s
+package servian
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const serviceAccountNamePrefix = "vault-sa-"
@@ -19,8 +18,8 @@ const roleKind = "Role"
 type KubernetesService struct {
 }
 
-func (k *KubernetesService) CreateServiceAccount(kubeConfigPath string, namespace string) (*ServiceAccountDetails, error) {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) CreateServiceAccount(kubeConfig KubeConfig, namespace string) (*ServiceAccountDetails, error) {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +48,8 @@ func (k *KubernetesService) CreateServiceAccount(kubeConfigPath string, namespac
 	}, nil
 }
 
-func (k *KubernetesService) DeleteServiceAccount(kubeConfigPath string, namespace string, serviceAccountName string) error {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) DeleteServiceAccount(kubeConfig KubeConfig, namespace string, serviceAccountName string) error {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -61,8 +60,8 @@ func (k *KubernetesService) DeleteServiceAccount(kubeConfigPath string, namespac
 	return nil
 }
 
-func (k *KubernetesService) CreateRole(kubeConfigPath string, namespace string) (*RoleDetails, error) {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) CreateRole(kubeConfig KubeConfig, namespace string) (*RoleDetails, error) {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +84,8 @@ func (k *KubernetesService) CreateRole(kubeConfigPath string, namespace string) 
 	}, nil
 }
 
-func (k *KubernetesService) CreateRoleBinding(kubeConfigPath string, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error) {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) CreateRoleBinding(kubeConfig KubeConfig, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error) {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +119,8 @@ func (k *KubernetesService) CreateRoleBinding(kubeConfigPath string, namespace s
 	}, nil
 }
 
-func (k *KubernetesService) DeleteRole(kubeConfigPath string, namespace string, roleName string) error {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) DeleteRole(kubeConfig KubeConfig, namespace string, roleName string) error {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -132,8 +131,8 @@ func (k *KubernetesService) DeleteRole(kubeConfigPath string, namespace string, 
 	return nil
 }
 
-func (k *KubernetesService) DeleteRoleBinding(kubeConfigPath string, namespace string, roleBindingName string) error {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) DeleteRoleBinding(kubeConfig KubeConfig, namespace string, roleBindingName string) error {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -144,8 +143,8 @@ func (k *KubernetesService) DeleteRoleBinding(kubeConfigPath string, namespace s
 	return nil
 }
 
-func (k *KubernetesService) CreateNamespaceIfNotExists(kubeConfigPath string, namespace string) (*NamespaceDetails, error) {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) CreateNamespaceIfNotExists(kubeConfig KubeConfig, namespace string) (*NamespaceDetails, error) {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +187,8 @@ func (k *KubernetesService) CreateNamespaceIfNotExists(kubeConfigPath string, na
 	}, err
 }
 
-func (k *KubernetesService) GetServiceAccountSecrets(kubeConfigPath string, namespace string, serviceAccountName string) ([]*ServiceAccountSecret, error) {
-	clientSet, err := getClientSet(kubeConfigPath)
+func (k *KubernetesService) GetServiceAccountSecrets(kubeConfig KubeConfig, namespace string, serviceAccountName string) ([]*ServiceAccountSecret, error) {
+	clientSet, err := getClientSet(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -220,14 +219,6 @@ func (k *KubernetesService) GetServiceAccountSecrets(kubeConfigPath string, name
 	return secrets, nil
 }
 
-func getClientSet(kubeConfigPath string) (*kubernetes.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	if err != nil {
-		return nil, err
-	}
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return clientSet, nil
+func getClientSet(kubeConfig KubeConfig) (*kubernetes.Clientset, error) {
+	return nil, nil
 }

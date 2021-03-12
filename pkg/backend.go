@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.com/servian/vault-k8s-secret-engine/pkg/k8s"
 	"strings"
 )
 
@@ -19,7 +18,7 @@ credentials for a short-lived k8s service account
 // TODO: set maxTtlInSeconds via plugin configuration, remove hardcoded value
 
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	k := k8s.KubernetesService{}
+	k := KubernetesService{}
 	b := Backend(&k)
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
@@ -31,7 +30,7 @@ func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) 
 }
 
 // TODO: implement a backend InitializeFunc to ensure we can connect to k8s
-func Backend(k k8s.KubernetesInterface) *backend {
+func Backend(k KubernetesInterface) *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
@@ -56,5 +55,5 @@ func Backend(k k8s.KubernetesInterface) *backend {
 
 type backend struct {
 	*framework.Backend
-	kubernetesService k8s.KubernetesInterface
+	kubernetesService KubernetesInterface
 }

@@ -9,7 +9,6 @@ import (
 )
 
 const secretAccessKeyType = "service_account_token"
-const keyKubeConfig = "kubeconfig"
 
 type RoleType string
 
@@ -81,7 +80,7 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	b.Logger().Info("revoking a service account")
 
 	namespace := d.Get(keyNamespace).(string)
-	kubeconfig := d.Get(keyKubeConfig).(string)
+	kubeconfig := d.Get(keyKubeConfig).(KubeConfig)
 
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
 	serviceAccountUID := d.Get(keyServiceAccountUID).(string)
