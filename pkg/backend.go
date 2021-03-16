@@ -32,7 +32,7 @@ func Backend(k KubernetesInterface) *backend {
 			readSecret(&b),
 		},
 		Secrets: []*framework.Secret{
-			createSecret(&b),
+			secret(&b),
 		},
 		PathsSpecial: &logical.Paths{
 			SealWrapStorage: []string{

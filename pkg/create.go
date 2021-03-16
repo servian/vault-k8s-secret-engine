@@ -17,7 +17,7 @@ const (
 	RoleTypeClusterRole RoleType = "ClusterRole"
 )
 
-func createSecret(b *backend) *framework.Secret {
+func secret(b *backend) *framework.Secret {
 	return &framework.Secret{
 		Type: secretAccessKeyType,
 		Fields: map[string]*framework.FieldSchema{
