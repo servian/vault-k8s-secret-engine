@@ -18,7 +18,7 @@ const keyServiceAccountUID = "service_account_uid"
 const keyServiceAccountName = "service_account_name"
 const keyRoleBindingName = "role_binding_name"
 
-func pathK8sServiceAccountForRole(b *backend) *framework.Path {
+func readSecret(b *backend) *framework.Path {
 	return &framework.Path{
 		Pattern: "service_account",
 		Fields: map[string]*framework.FieldSchema{

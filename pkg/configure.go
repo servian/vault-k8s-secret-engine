@@ -22,7 +22,7 @@ type PluginConfig struct {
 	AllowedClusterRoles []string `json:"allowed_cluster_roles"`
 }
 
-func configK8sServiceAccount(b *backend) *framework.Path {
+func configurePlugin(b *backend) *framework.Path {
 	return &framework.Path{
 		Pattern: "config",
 		Fields: map[string]*framework.FieldSchema{

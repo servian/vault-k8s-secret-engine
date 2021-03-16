@@ -17,7 +17,7 @@ const (
 	RoleTypeClusterRole RoleType = "ClusterRole"
 )
 
-func secretK8sServiceAccount(b *backend) *framework.Secret {
+func createSecret(b *backend) *framework.Secret {
 	return &framework.Secret{
 		Type: secretAccessKeyType,
 		Fields: map[string]*framework.FieldSchema{

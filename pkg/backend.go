@@ -35,11 +35,11 @@ func Backend(k KubernetesInterface) *backend {
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
 		Paths: []*framework.Path{
-			configK8sServiceAccount(&b),
-			pathK8sServiceAccountForRole(&b),
+			configurePlugin(&b),
+			readSecret(&b),
 		},
 		Secrets: []*framework.Secret{
-			secretK8sServiceAccount(&b),
+			createSecret(&b),
 		},
 		PathsSpecial: &logical.Paths{
 			SealWrapStorage: []string{
