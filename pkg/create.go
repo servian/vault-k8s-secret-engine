@@ -58,7 +58,7 @@ func createSecret(b *backend) *framework.Secret {
 	}
 }
 
-// TODO: delete service account, role etc. if any step errors out
+// TODO: delete any resources created in this method if any step errors out
 func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace string, roleName string, roleType RoleType) (*logical.Response, error) {
 	se, err := s.Get(ctx, configPath)
 	if err != nil {
@@ -85,7 +85,6 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
 	serviceAccountUID := d.Get(keyServiceAccountUID).(string)
 
-	roleName := d.Get(keyRoleName).(string)
 	roleBindingName := d.Get(keyRoleBindingName).(string)
 
 	b.Logger().Info(fmt.Sprintf("deleting role binding with name: %s in namespace: %s", roleBindingName, namespace))
@@ -94,13 +93,6 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 		return nil, err
 	}
 	b.Logger().Info(fmt.Sprintf("deleted role binding with name: %s in namespace: %s", roleBindingName, namespace))
-
-	b.Logger().Info(fmt.Sprintf("deleting role with name: %s in namespace: %s", roleName, namespace))
-	err = b.kubernetesService.DeleteRole(kubeconfig, namespace, roleName)
-	if err != nil {
-		return nil, err
-	}
-	b.Logger().Info(fmt.Sprintf("deleted role with name: %s in namespace: %s", roleName, namespace))
 
 	b.Logger().Info(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, serviceAccountUID))
 	err = b.kubernetesService.DeleteServiceAccount(kubeconfig, namespace, serviceAccountName)
