@@ -1,8 +1,20 @@
 package servian
 
-// Contents of the kubeconfig file used to communicate with the cluster
-// Refer to: https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/ for more details about the kubeconfig file
-type KubeConfig string
+import (
+	"net/url"
+
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
+)
+
+type KubeConfig struct {
+	baseUrl             *url.URL
+	versionedAPIPath    string
+	clientContentConfig rest.ClientContentConfig
+	rateLimiter         flowcontrol.RateLimiter
+	jwt                 string
+	apiServerCert       string
+}
 
 type KubernetesInterface interface {
 	CreateServiceAccount(kubeConfig KubeConfig, namespace string) (*ServiceAccountDetails, error)
