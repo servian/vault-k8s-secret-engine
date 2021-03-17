@@ -2,10 +2,13 @@ package servian
 
 import (
 	"fmt"
+	"net/http"
+
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const serviceAccountNamePrefix = "vault-sa-"
@@ -108,5 +111,22 @@ func (k *KubernetesService) DeleteRoleBinding(kubeConfig KubeConfig, namespace s
 }
 
 func getClientSet(kubeConfig KubeConfig) (*kubernetes.Clientset, error) {
-	return nil, nil
+	// todo create new http.Client
+	// create new clientGo rest.Interface
+	c, err := rest.NewRESTClient(kubeConfig.baseUrl, kubeConfig.versionedAPIPath, kubeConfig.clientContentConfig, kubeConfig.rateLimiter, http.DefaultClient)
+	if err != nil {
+		return nil, err
+	}
+
+	// restConfig := &rest.Config{}
+
+	return kubernetes.New(newRestClientWrap(c, kubeConfig.jwt)), nil
+
+	// clientConfig := client.Config{}
+	// info := &auth.Info{}
+	// info.BearerToken = kubeConfig.jwt
+
+	// clientConfig, _ = info.MergeWithConfig(clientConfig)
+
+	// return kubernetes.New(client.New(clientConfig)), nil
 }
