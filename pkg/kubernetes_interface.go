@@ -3,25 +3,25 @@ package servian
 import (
 	"net/url"
 
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/flowcontrol"
+	"github.com/hashicorp/go-hclog"
 )
 
 type KubeConfig struct {
-	baseUrl             *url.URL
-	versionedAPIPath    string
-	clientContentConfig rest.ClientContentConfig
-	rateLimiter         flowcontrol.RateLimiter
-	jwt                 string
-	apiServerCert       string
+	baseUrl *url.URL
+	//versionedAPIPath    string
+	//clientContentConfig rest.ClientContentConfig
+	//rateLimiter         flowcontrol.RateLimiter
+	jwt    string
+	CACert string
 }
 
 type KubernetesInterface interface {
-	CreateServiceAccount(kubeConfig KubeConfig, namespace string) (*ServiceAccountDetails, error)
-	DeleteServiceAccount(kubeConfig KubeConfig, namespace string, serviceAccountName string) error
+	CreateServiceAccount(pluginConfig PluginConfig, namespace string, l hclog.Logger) (*ServiceAccountDetails, error)
+	GetServiceAccountSecret(pluginConfig PluginConfig, sa *ServiceAccountDetails, l hclog.Logger) ([]*ServiceAccountSecret, error)
+	DeleteServiceAccount(pluginConfig PluginConfig, namespace string, serviceAccountName string, l hclog.Logger) error
 
-	CreateRoleBinding(kubeConfig KubeConfig, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error)
-	DeleteRoleBinding(kubeConfig KubeConfig, namespace string, roleBindingName string) error
+	CreateRoleBinding(pluginConfig PluginConfig, namespace string, serviceAccountName string, roleName string, l hclog.Logger) (*RoleBindingDetails, error)
+	DeleteRoleBinding(pluginConfig PluginConfig, namespace string, roleBindingName string, l hclog.Logger) error
 }
 
 type ServiceAccountDetails struct {
@@ -34,4 +34,10 @@ type RoleBindingDetails struct {
 	Namespace string
 	UID       string
 	Name      string
+}
+
+type ServiceAccountSecret struct {
+	CACert    string
+	Namespace string
+	Token     string
 }

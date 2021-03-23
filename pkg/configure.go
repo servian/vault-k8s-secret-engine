@@ -4,22 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 const keyMaxTTL = "max_ttl"
-const keyKubeConfig = "kube_config"
 const keyAllowedRoles = "allowed_roles"
 const keyAllowedClusterRoles = "allowed_cluster_roles"
-
+const keyJWT = "jwt"
+const keyCACert = "ca_cert"
+const keyBaseUrl = "base_url"
 const configPath = "config"
 
 type PluginConfig struct {
 	MaxTTL              int      `json:"max_ttl"`
-	KubeConfig          string   `json:"kube_config"`
 	AllowedRoles        []string `json:"allowed_roles"`
 	AllowedClusterRoles []string `json:"allowed_cluster_roles"`
+	ServiceAccountJWT   string   `json:"jwt"`
+	CACert              string   `json:"ca_cert"`
+	BaseUrl             *url.URL `json:"base_url"`
+	VersionedAPIPath    string   `json:"versioned_api_path"`
 }
 
 func configurePlugin(b *backend) *framework.Path {
@@ -30,10 +36,6 @@ func configurePlugin(b *backend) *framework.Path {
 				Type:        framework.TypeInt,
 				Description: "Time to live for the credentials returned.",
 			},
-			keyKubeConfig: {
-				Type:        framework.TypeString,
-				Description: "Contents of the kubeconfig file to use to communicate with the kubernetes cluster.",
-			},
 			keyAllowedRoles: {
 				Type:        framework.TypeCommaStringSlice,
 				Description: "Kubernetes roles that can be assigned to service accounts created by this plugin.",
@@ -41,6 +43,18 @@ func configurePlugin(b *backend) *framework.Path {
 			keyAllowedClusterRoles: {
 				Type:        framework.TypeCommaStringSlice,
 				Description: "Kubernetes cluster roles that can be assigned to service accounts created by this plugin.",
+			},
+			keyJWT: {
+				Type:        framework.TypeString,
+				Description: "JTW for the service account used to create and remove credentials in the Kubernetes Cluster",
+			},
+			keyCACert: {
+				Type:        framework.TypeString,
+				Description: "CA cert from the Kubernetes Cluster, to validate the connection",
+			},
+			keyBaseUrl: {
+				Type:        framework.TypeString,
+				Description: "URL for kubernetes cluster for vault to use to comunicate to k8s. https://{url}:{port}",
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -62,15 +76,26 @@ func configurePlugin(b *backend) *framework.Path {
 
 func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ttl := d.Get(keyMaxTTL).(int)
-	kubeConfig := d.Get(keyKubeConfig).(string)
 	allowedRoles := d.Get(keyAllowedRoles).([]string)
 	allowedClusterRoles := d.Get(keyAllowedClusterRoles).([]string)
+	jwt := d.Get(keyJWT).(string)
+	cacert := d.Get(keyCACert).(string)
+	baseurl := d.Get(keyBaseUrl).(string)
+
+	parsedurl, err := url.Parse(baseurl)
+
+	if err != nil {
+		return nil, err
+	}
+
 	b.Logger().Info(fmt.Sprintf("TTL specified is: %d", ttl))
 	config := PluginConfig{
 		MaxTTL:              ttl,
-		KubeConfig:          kubeConfig,
 		AllowedRoles:        allowedRoles,
 		AllowedClusterRoles: allowedClusterRoles,
+		ServiceAccountJWT:   jwt,
+		CACert:              cacert,
+		BaseUrl:             parsedurl,
 	}
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
@@ -88,12 +113,15 @@ func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d 
 	} else if config == nil {
 		return nil, nil
 	} else {
+
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				keyMaxTTL:              config.MaxTTL,
-				keyKubeConfig:          config.KubeConfig,
 				keyAllowedRoles:        config.AllowedRoles,
 				keyAllowedClusterRoles: config.AllowedClusterRoles,
+				keyJWT:                 config.ServiceAccountJWT,
+				keyCACert:              config.CACert,
+				keyBaseUrl:             fmt.Sprintf("%s://%s", config.BaseUrl.Scheme, config.BaseUrl.Host),
 			},
 		}
 		return resp, nil

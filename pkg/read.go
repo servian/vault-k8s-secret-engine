@@ -3,6 +3,7 @@ package servian
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -11,7 +12,6 @@ const keyRoleName = "role_name"
 const keyClusterRoleName = "cluster_role_name"
 const keyKubeConfigPath = "kube_config_path"
 const keyTtlSeconds = "ttl_seconds"
-const keyCACert = "ca_cert"
 const keyNamespace = "namespace"
 const keyServiceAccountToken = "service_account_token"
 const keyServiceAccountUID = "service_account_uid"
@@ -30,6 +30,10 @@ func readSecret(b *backend) *framework.Path {
 				Type:        framework.TypeString,
 				Description: "The namespace under which the service account should be created",
 			},
+			keyTtlSeconds: &framework.FieldSchema{
+				Type:        framework.TypeInt,
+				Description: "The time to live for the token in seconds",
+			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{
@@ -45,7 +49,8 @@ func (b *backend) handleReadForRole(ctx context.Context, req *logical.Request, d
 	if d != nil {
 		roleName := d.Get(keyRoleName).(string)
 		namespace := d.Get(keyNamespace).(string)
-		return b.createSecret(ctx, req.Storage, namespace, roleName, RoleTypeRole)
+		ttl := d.Get(keyTtlSeconds).(int)
+		return b.createSecret(ctx, req.Storage, namespace, roleName, RoleTypeRole, ttl)
 	} else {
 		return nil, fmt.Errorf("could not find a role name to associate with the service account")
 	}
