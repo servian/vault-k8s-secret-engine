@@ -2,8 +2,6 @@ package servian
 
 import (
 	"net/url"
-
-	"github.com/hashicorp/go-hclog"
 )
 
 type KubeConfig struct {
@@ -16,12 +14,12 @@ type KubeConfig struct {
 }
 
 type KubernetesInterface interface {
-	CreateServiceAccount(pluginConfig PluginConfig, namespace string, l hclog.Logger) (*ServiceAccountDetails, error)
-	GetServiceAccountSecret(pluginConfig PluginConfig, sa *ServiceAccountDetails, l hclog.Logger) ([]*ServiceAccountSecret, error)
-	DeleteServiceAccount(pluginConfig PluginConfig, namespace string, serviceAccountName string, l hclog.Logger) error
+	CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error)
+	GetServiceAccountSecret(pluginConfig *PluginConfig, sa *ServiceAccountDetails) ([]*ServiceAccountSecret, error)
+	DeleteServiceAccount(pluginConfig *PluginConfig, namespace string, serviceAccountName string) error
 
-	CreateRoleBinding(pluginConfig PluginConfig, namespace string, serviceAccountName string, roleName string, l hclog.Logger) (*RoleBindingDetails, error)
-	DeleteRoleBinding(pluginConfig PluginConfig, namespace string, roleBindingName string, l hclog.Logger) error
+	CreateRoleBinding(pluginConfig *PluginConfig, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error)
+	DeleteRoleBinding(pluginConfig *PluginConfig, namespace string, roleBindingName string) error
 }
 
 type ServiceAccountDetails struct {

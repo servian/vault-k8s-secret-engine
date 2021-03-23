@@ -58,21 +58,19 @@ func secret(b *backend) *framework.Secret {
 }
 
 func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace string, roleName string, roleType RoleType, ttl int) (*logical.Response, error) {
-	se, err := s.Get(ctx, configPath)
-	if err != nil {
-		return nil, err
-	}
-	if se == nil {
-		return nil, fmt.Errorf("the plugin is not configured correctly")
-	}
-	var pluginConfig PluginConfig
-	err = se.DecodeJSON(&pluginConfig)
+
+	// reload plugin config on every call to prevent stale config
+	pluginConfig, err := loadPluginConfig(ctx, s)
 	if err != nil {
 		return nil, err
 	}
 
-	b.Logger().Info(fmt.Sprintf("creating secret with ttl: %d for role: %s in namespace: %s", pluginConfig.MaxTTL, roleName, namespace))
-	sa, err := b.kubernetesService.CreateServiceAccount(pluginConfig, namespace, b.Logger())
+	if ttl > pluginConfig.MaxTTL {
+		ttl = pluginConfig.MaxTTL
+	}
+
+	b.Logger().Info(fmt.Sprintf("creating secret with ttl: %d for role: %s in namespace: %s", ttl, roleName, namespace))
+	sa, err := b.kubernetesService.CreateServiceAccount(pluginConfig, namespace)
 
 	if err != nil {
 		b.Logger().Error(fmt.Sprintf("Error creating Kubernetes service account: %s", err))
@@ -82,28 +80,23 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace
 	// give the kubernetes cluster a chance to generate the secret for the SA
 	time.Sleep(1 * time.Second)
 
-	secrets, err := b.kubernetesService.GetServiceAccountSecret(pluginConfig, sa, b.Logger())
+	secrets, err := b.kubernetesService.GetServiceAccountSecret(pluginConfig, sa)
 	if err != nil {
 		b.Logger().Error(fmt.Sprintf("Error loading secrets for service account: %s", err))
-		b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name, b.Logger())
+		b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name)
 		return nil, err
 	}
 
 	if len(secrets) != 1 {
-		//b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name, b.Logger())
-		b.Logger().Error(fmt.Sprint("Found %d Secrets for service account, expected 1", len(secrets)))
-		for secret := range secrets {
-
-			b.Logger().Info(fmt.Sprint("Secret found: %s", secret))
-		}
+		b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name)
 		return nil, fmt.Errorf("More than 1 secret found with the newly created service account, this is unexpected for the prupose of this plugin, please try again.")
 	}
 
-	rb, err := b.kubernetesService.CreateRoleBinding(pluginConfig, namespace, sa.Name, roleName, b.Logger())
+	rb, err := b.kubernetesService.CreateRoleBinding(pluginConfig, namespace, sa.Name, roleName)
 
 	if err != nil {
 		b.Logger().Error(fmt.Sprintf("Error setting up Kubernetes role binding for SA %s: %s", sa.Name, err))
-		//b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name, b.Logger())
+		b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name)
 		return nil, err
 	}
 
@@ -122,25 +115,22 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace
 		keyServiceAccountUID:   sa.UID,
 		keyRoleName:            roleName,
 		keyRoleBindingName:     rb.Name,
-		keyTtlSeconds:          dur,
-		keyMaxTTL:              dur,
 	}, map[string]interface{}{})
 
+	// set up TTL for secret so it gets automatically revoked
+	resp.Secret.LeaseOptions.TTL = dur
+	resp.Secret.LeaseOptions.MaxTTL = dur
+	resp.Secret.LeaseOptions.Renewable = false
+	resp.Secret.TTL = dur
+	resp.Secret.MaxTTL = dur
 	resp.Secret.Renewable = false
 
 	return resp, nil
 }
 
 func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	se, err := req.Storage.Get(ctx, configPath)
-	if err != nil {
-		return nil, err
-	}
-	if se == nil {
-		return nil, fmt.Errorf("the plugin is not configured correctly")
-	}
-	var pluginConfig PluginConfig
-	err = se.DecodeJSON(&pluginConfig)
+	// reload plugin config on every call to prevent stale config
+	pluginConfig, err := loadPluginConfig(ctx, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +145,14 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	roleBindingName := d.Get(keyRoleBindingName).(string)
 
 	b.Logger().Info(fmt.Sprintf("deleting role binding with name: %s in namespace: %s", roleBindingName, namespace))
-	err = b.kubernetesService.DeleteRoleBinding(pluginConfig, namespace, roleBindingName, b.Logger())
+	err = b.kubernetesService.DeleteRoleBinding(pluginConfig, namespace, roleBindingName)
 	if err != nil {
 		return nil, err
 	}
 	b.Logger().Info(fmt.Sprintf("deleted role binding with name: %s in namespace: %s", roleBindingName, namespace))
 
 	b.Logger().Info(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, serviceAccountUID))
-	err = b.kubernetesService.DeleteServiceAccount(pluginConfig, namespace, serviceAccountName, b.Logger())
+	err = b.kubernetesService.DeleteServiceAccount(pluginConfig, namespace, serviceAccountName)
 	if err != nil {
 		return nil, err
 	}

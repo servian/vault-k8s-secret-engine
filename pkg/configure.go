@@ -24,7 +24,7 @@ type PluginConfig struct {
 	AllowedClusterRoles []string `json:"allowed_cluster_roles"`
 	ServiceAccountJWT   string   `json:"jwt"`
 	CACert              string   `json:"ca_cert"`
-	BaseUrl             *url.URL `json:"base_url"`
+	BaseUrl             string   `json:"base_url"`
 	VersionedAPIPath    string   `json:"versioned_api_path"`
 }
 
@@ -82,20 +82,19 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 	cacert := d.Get(keyCACert).(string)
 	baseurl := d.Get(keyBaseUrl).(string)
 
-	parsedurl, err := url.Parse(baseurl)
-
+	_, err := url.Parse(baseurl)
 	if err != nil {
-		return nil, err
+		return logical.ErrorResponse("baseurl '%s' not a valid host: %s", baseurl, err), err
 	}
 
-	b.Logger().Info(fmt.Sprintf("TTL specified is: %d", ttl))
+	b.Logger().Info(fmt.Sprintf("MaxTTL specified is: %d", ttl))
 	config := PluginConfig{
 		MaxTTL:              ttl,
 		AllowedRoles:        allowedRoles,
 		AllowedClusterRoles: allowedClusterRoles,
 		ServiceAccountJWT:   jwt,
 		CACert:              cacert,
-		BaseUrl:             parsedurl,
+		BaseUrl:             baseurl,
 	}
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
@@ -108,7 +107,7 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 }
 
 func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	if config, err := b.config(ctx, req.Storage); err != nil {
+	if config, err := loadPluginConfig(ctx, req.Storage); err != nil {
 		return nil, err
 	} else if config == nil {
 		return nil, nil
@@ -121,14 +120,15 @@ func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d 
 				keyAllowedClusterRoles: config.AllowedClusterRoles,
 				keyJWT:                 config.ServiceAccountJWT,
 				keyCACert:              config.CACert,
-				keyBaseUrl:             fmt.Sprintf("%s://%s", config.BaseUrl.Scheme, config.BaseUrl.Host),
+				keyBaseUrl:             config.BaseUrl,
 			},
 		}
 		return resp, nil
 	}
 }
 
-func (b *backend) config(ctx context.Context, s logical.Storage) (*PluginConfig, error) {
+// loadPluginConfig is a helper function to simplify the loading of plugin configuration from the logical store
+func loadPluginConfig(ctx context.Context, s logical.Storage) (*PluginConfig, error) {
 	raw, err := s.Get(ctx, configPath)
 	if err != nil {
 		return nil, err
