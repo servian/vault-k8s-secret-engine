@@ -1,20 +1,12 @@
 package servian
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"net/http"
-	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
 
@@ -28,8 +20,8 @@ const roleKind = "Role"
 type KubernetesService struct {
 }
 
-func (k *KubernetesService) CreateServiceAccount(pluginConfig PluginConfig, namespace string, l hclog.Logger) (*ServiceAccountDetails, error) {
-	clientSet, err := getClientSet(pluginConfig, l)
+func (k *KubernetesService) CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error) {
+	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +50,8 @@ func (k *KubernetesService) CreateServiceAccount(pluginConfig PluginConfig, name
 	}, nil
 }
 
-func (k *KubernetesService) GetServiceAccountSecret(pluginConfig PluginConfig, sa *ServiceAccountDetails, l hclog.Logger) ([]*ServiceAccountSecret, error) {
-	clientSet, err := getClientSet(pluginConfig, l)
+func (k *KubernetesService) GetServiceAccountSecret(pluginConfig *PluginConfig, sa *ServiceAccountDetails) ([]*ServiceAccountSecret, error) {
+	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +82,8 @@ func (k *KubernetesService) GetServiceAccountSecret(pluginConfig PluginConfig, s
 	return secrets, nil
 }
 
-func (k *KubernetesService) DeleteServiceAccount(pluginConfig PluginConfig, namespace string, serviceAccountName string, l hclog.Logger) error {
-	clientSet, err := getClientSet(pluginConfig, l)
+func (k *KubernetesService) DeleteServiceAccount(pluginConfig *PluginConfig, namespace string, serviceAccountName string) error {
+	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
 		return err
 	}
@@ -102,8 +94,8 @@ func (k *KubernetesService) DeleteServiceAccount(pluginConfig PluginConfig, name
 	return nil
 }
 
-func (k *KubernetesService) CreateRoleBinding(pluginConfig PluginConfig, namespace string, serviceAccountName string, roleName string, l hclog.Logger) (*RoleBindingDetails, error) {
-	clientSet, err := getClientSet(pluginConfig, l)
+func (k *KubernetesService) CreateRoleBinding(pluginConfig *PluginConfig, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error) {
+	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -115,13 +107,8 @@ func (k *KubernetesService) CreateRoleBinding(pluginConfig PluginConfig, namespa
 		},
 	}
 
-	l.Info(fmt.Sprintf("subjects: %#v", subjects))
-
 	roleBinding := rbac.RoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "RoleBindnig",
-			APIVersion: "rbac.authorization.k8s.io/v1",
-		},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: roleBindingNamePrefix,
 			Namespace:    namespace,
@@ -133,14 +120,8 @@ func (k *KubernetesService) CreateRoleBinding(pluginConfig PluginConfig, namespa
 		},
 	}
 
-	//l.Info(fmt.Sprintf("roleBinding: %#v", roleBinding))
-	time.Sleep(2 * time.Second)
-
 	rb, err := clientSet.RbacV1().RoleBindings(namespace).Create(&roleBinding)
 	if err != nil {
-		l.Info(fmt.Sprintf("rb-meta: %+v", roleBinding))
-		l.Info(fmt.Sprintf("err: %+v", err))
-		l.Info(fmt.Sprintf("rb: %+v", rb))
 		return nil, err
 	}
 	return &RoleBindingDetails{
@@ -150,8 +131,8 @@ func (k *KubernetesService) CreateRoleBinding(pluginConfig PluginConfig, namespa
 	}, nil
 }
 
-func (k *KubernetesService) DeleteRoleBinding(pluginConfig PluginConfig, namespace string, roleBindingName string, l hclog.Logger) error {
-	clientSet, err := getClientSet(pluginConfig, l)
+func (k *KubernetesService) DeleteRoleBinding(pluginConfig *PluginConfig, namespace string, roleBindingName string) error {
+	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
 		return err
 	}
@@ -162,44 +143,18 @@ func (k *KubernetesService) DeleteRoleBinding(pluginConfig PluginConfig, namespa
 	return nil
 }
 
-func getClientSet(pluginConfig PluginConfig, l hclog.Logger) (*kubernetes.Clientset, error) {
+// getClientSet sets up a new client for accessing the kubernetes API using a bearer token and a CACert
+func getClientSet(pluginConfig *PluginConfig) (*kubernetes.Clientset, error) {
 
-	// using cleanhttp here rather than net/http so it's an isolated client and doesn't impact future instantiations.
-	// Changes to http.DefaultClient persists for the lifetime of the process
-	client := cleanhttp.DefaultClient()
-
-	// Replace the trustsed cert pool with the one configured for the specific Kubernetes cluster
-	// this will cause an SSL failure if the connection is directed to anything other than the expected cluster
-	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM([]byte(pluginConfig.CACert))
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		RootCAs:    certPool,
+	tlsConfig := rest.TLSClientConfig{
+		CAData: []byte(pluginConfig.CACert),
 	}
 
-	client.Transport.(*http.Transport).TLSClientConfig = tlsConfig
-
-	clientConf := rest.ClientContentConfig{}
-	clientConf.GroupVersion = v1.SchemeGroupVersion // I think this works???
-	clientConf.Negotiator = runtime.NewClientNegotiator(scheme.Codecs.WithoutConversion(), clientConf.GroupVersion)
-
-	//l.Info(fmt.Sprintf("Replaced certpool with cert: %s", pluginConfig.CACert))
-
-	c, err := rest.NewRESTClient(pluginConfig.BaseUrl, "/api/v1", clientConf, nil, client)
-	if err != nil {
-		return nil, err
+	conf := &rest.Config{
+		Host:            pluginConfig.BaseUrl,
+		TLSClientConfig: tlsConfig,
+		BearerToken:     pluginConfig.ServiceAccountJWT,
 	}
 
-	return kubernetes.New(newRestClientWrap(c, pluginConfig.ServiceAccountJWT)), nil
-
-	// clientConfig := client.Config{}
-	// info := &auth.Info{}
-	// info.BearerToken = kubeConfig.jwt
-
-	// clientConfig, _ = info.MergeWithConfig(clientConfig)
-
-	// return kubernetes.New(client.New(clientConfig)), nil
+	return kubernetes.NewForConfig(conf)
 }
-
-//echo -n | openssl s_client -connect 127.0.0.1:57571 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'
