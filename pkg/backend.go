@@ -2,9 +2,10 @@ package servian
 
 import (
 	"context"
+	"strings"
+
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"strings"
 )
 
 // TODO: Finish help text
@@ -29,6 +30,7 @@ func Backend(k KubernetesInterface) *backend {
 		Help: strings.TrimSpace(backendHelp),
 		Paths: []*framework.Path{
 			configurePlugin(&b),
+			invalidPath(&b),
 			readSecret(&b),
 		},
 		Secrets: []*framework.Secret{
@@ -39,7 +41,7 @@ func Backend(k KubernetesInterface) *backend {
 				configPath,
 			},
 		},
-		// TODO: Do we need to use `TypeCredential` instead?
+
 		BackendType: logical.TypeLogical,
 	}
 	b.kubernetesService = k

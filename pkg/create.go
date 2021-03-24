@@ -13,13 +13,6 @@ import (
 
 const secretAccessKeyType = "service_account_token"
 
-type RoleType string
-
-const (
-	RoleTypeRole        RoleType = "Role"
-	RoleTypeClusterRole RoleType = "ClusterRole"
-)
-
 func secret(b *backend) *framework.Secret {
 	return &framework.Secret{
 		Type: secretAccessKeyType,
@@ -30,7 +23,7 @@ func secret(b *backend) *framework.Secret {
 			},
 			keyNamespace: &framework.FieldSchema{
 				Type:        framework.TypeString,
-				Description: "Namespace in which the service account was created",
+				Description: "Namespace in which the service account will be created",
 			},
 			keyServiceAccountToken: &framework.FieldSchema{
 				Type:        framework.TypeString,
@@ -57,10 +50,15 @@ func secret(b *backend) *framework.Secret {
 	}
 }
 
-func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace string, roleName string, roleType RoleType, ttl int) (*logical.Response, error) {
+func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType string, namespace string, ttl int) (*logical.Response, error) {
 
 	// reload plugin config on every call to prevent stale config
 	pluginConfig, err := loadPluginConfig(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	roleName, err := getClusterRoleName(pluginConfig, saType)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +102,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, namespace
 
 	dur, err := time.ParseDuration(fmt.Sprintf("%ds", ttl))
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("ttl: %d could not be parse due to error: {{err}}", ttl, err), err)
+		return nil, errwrap.Wrapf(fmt.Sprintf("ttl: %d could not be parse due to error: %s", ttl, err), err)
 	}
 
 	resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
@@ -138,10 +136,8 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	b.Logger().Info("revoking a service account")
 
 	namespace := d.Get(keyNamespace).(string)
-
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
 	serviceAccountUID := d.Get(keyServiceAccountUID).(string)
-
 	roleBindingName := d.Get(keyRoleBindingName).(string)
 
 	b.Logger().Info(fmt.Sprintf("deleting role binding with name: %s in namespace: %s", roleBindingName, namespace))
@@ -163,4 +159,18 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	}, map[string]interface{}{})
 
 	return resp, nil
+}
+
+// getCluterRoleName is a helper function to pull out the correct cluster role from the plugin configuration for the saType
+func getClusterRoleName(pluginConfig *PluginConfig, saType string) (string, error) {
+	switch saType {
+	case "admin":
+		return pluginConfig.AdminRole, nil
+	case "editor":
+		return pluginConfig.EditorRole, nil
+	case "viewer":
+		return pluginConfig.ViewerRole, nil
+	}
+
+	return "", fmt.Errorf("Service Account type '%s' is not a valid type", saType)
 }
