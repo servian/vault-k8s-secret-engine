@@ -115,7 +115,7 @@ func (k *KubernetesService) CreateRoleBinding(pluginConfig *PluginConfig, namesp
 		},
 		Subjects: subjects,
 		RoleRef: rbac.RoleRef{
-			Kind: "Role",
+			Kind: "ClusterRole",
 			Name: roleName,
 		},
 	}
