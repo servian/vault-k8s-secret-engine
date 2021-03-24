@@ -61,3 +61,9 @@ make build
 1. `./local_build.sh`
 1. `./local_test.sh`
 
+## Todo
+
+1. create unit tests
+1. expand local dev doco
+1. write documention on how to configure
+1. write documentation for end user 
