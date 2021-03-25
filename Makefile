@@ -8,13 +8,12 @@ clean:
 
 kube-up:
 	kind create cluster
-	cd tests && ./local_configure.sh
 
 kube-down:
 	kind delete cluster
 
-kube-configure:
+vault-configure:
 	cd tests && .local_configure.sh
 
-run-vault:
+vault-run:
 	cd tests && ./local_build.sh
