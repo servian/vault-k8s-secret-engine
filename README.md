@@ -19,7 +19,7 @@ This keeps the blast radius relatively small in case the credentials get leaked 
 1. [Configure The Secret Engine](#Configure-the-secret-engine)
 1. [Vault policy](#Vault-policy)
 1. [Build from Source](#Build-from-source)
-1. [Local development](#Local-development)
+1. [Local development](tests/readme.md)
 
 ## Architectural overiew
 
