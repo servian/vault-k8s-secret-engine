@@ -1,18 +1,5 @@
 package servian
 
-import (
-	"net/url"
-)
-
-type KubeConfig struct {
-	baseUrl *url.URL
-	//versionedAPIPath    string
-	//clientContentConfig rest.ClientContentConfig
-	//rateLimiter         flowcontrol.RateLimiter
-	jwt    string
-	CACert string
-}
-
 type KubernetesInterface interface {
 	CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error)
 	GetServiceAccountSecret(pluginConfig *PluginConfig, sa *ServiceAccountDetails) ([]*ServiceAccountSecret, error)
