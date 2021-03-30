@@ -58,7 +58,7 @@ The path follows this pattern:
 
 parameter | description | required | default 
 -|-|-|-
-ttl_seconds | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead | false | 600
+ttl | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead | false | 600
 
 ### Usage example
 
@@ -94,7 +94,7 @@ admin_role | Name of the Kubernetes Cluster Role that will be used for a service
 editor_role | Name of the Kubernetes   ClusterRole that will be used for a service account with editor rights to a namespace | true | 
 viwer_role | Name of the kiubernetes ClusterRole that will be used for a service account with viewer rights to a namespae | true |
 jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | 
-base_url | The url to the Kubernetes management plane API. Pattern: https://<url>:<port>| true | 
+host | The url to the Kubernetes management plane API. Pattern: https://<url>:<port>| true | 
 max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 1800
 
 ### Usage example
