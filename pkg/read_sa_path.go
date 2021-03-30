@@ -71,7 +71,8 @@ func (b *backend) handleReadForRole(ctx context.Context, req *logical.Request, d
 		namespace := d.Get(keyNamespace).(string)
 		ttl := d.Get(keyTtlSeconds).(int)
 		return b.createSecret(ctx, req.Storage, saType, namespace, ttl)
-	} else {
-		return nil, fmt.Errorf("could not find a role name to associate with the service account")
 	}
+
+	return nil, fmt.Errorf("could not find a role name to associate with the service account")
+
 }

@@ -16,9 +16,10 @@ const keyEditorRole = "editor_role"
 const keyViewerRole = "viewer_role"
 const keyJWT = "jwt"
 const keyCACert = "ca_cert"
-const keyBaseUrl = "base_url"
+const keyHost = "host"
 const configPath = "config"
 
+// PluginConfig contains all the configuration for the plugin
 type PluginConfig struct {
 	MaxTTL            int    `json:"max_ttl"`
 	AdminRole         string `json:"admin_role"`
@@ -26,7 +27,7 @@ type PluginConfig struct {
 	ViewerRole        string `json:"viewer_role"`
 	ServiceAccountJWT string `json:"jwt"`
 	CACert            string `json:"ca_cert"`
-	BaseUrl           string `json:"base_url"`
+	Host              string `json:"host"`
 }
 
 func configurePlugin(b *backend) *framework.Path {
@@ -63,7 +64,7 @@ func configurePlugin(b *backend) *framework.Path {
 				Description: "CA cert from the Kubernetes Cluster, to validate the connection",
 				Required:    true,
 			},
-			keyBaseUrl: {
+			keyHost: {
 				Type:        framework.TypeString,
 				Description: "URL for kubernetes cluster for vault to use to comunicate to k8s. https://{url}:{port}",
 				Required:    true,
@@ -93,11 +94,11 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 	viewerRole := d.Get(keyViewerRole).(string)
 	jwt := d.Get(keyJWT).(string)
 	cacert := d.Get(keyCACert).(string)
-	baseurl := d.Get(keyBaseUrl).(string)
+	Host := d.Get(keyHost).(string)
 
-	_, err := url.Parse(baseurl)
+	_, err := url.Parse(Host)
 	if err != nil {
-		return logical.ErrorResponse("baseurl '%s' not a valid host: %s", baseurl, err), err
+		return logical.ErrorResponse("Host '%s' not a valid host: %s", Host, err), err
 	}
 
 	b.Logger().Info(fmt.Sprintf("MaxTTL specified is: %d", ttl))
@@ -108,7 +109,7 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 		ViewerRole:        viewerRole,
 		ServiceAccountJWT: jwt,
 		CACert:            cacert,
-		BaseUrl:           baseurl,
+		Host:              Host,
 	}
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
@@ -135,7 +136,7 @@ func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d 
 				keyViewerRole: config.ViewerRole,
 				keyJWT:        config.ServiceAccountJWT,
 				keyCACert:     config.CACert,
-				keyBaseUrl:    config.BaseUrl,
+				keyHost:       config.Host,
 			},
 		}
 		return resp, nil

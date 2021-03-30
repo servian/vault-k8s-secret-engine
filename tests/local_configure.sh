@@ -13,4 +13,4 @@ export VAULT_ADDR="http://127.0.0.1:8200" \
 && vault write k8s/config viewer_role="reader_role" \
 jwt="${sa_token}" \
 ca_cert="${k8_cacert}" \
-base_url="${server}"
+host="${server}"

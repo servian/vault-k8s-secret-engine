@@ -14,6 +14,7 @@ The Vault dynamic service account backend provides on-demand, dynamic
 credentials for a short-lived k8s service account
 `
 
+// K8ServiceAccountFactory inits a new instance of the plugin
 func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	k := KubernetesService{}
 	b := Backend(&k)
@@ -23,7 +24,7 @@ func K8sServiceAccountFactory(ctx context.Context, conf *logical.BackendConfig) 
 	return b, nil
 }
 
-// TODO: implement a backend InitializeFunc to ensure we can connect to k8s
+// Backend instantiates the backend for the plugin
 func Backend(k KubernetesInterface) *backend {
 	var b backend
 	b.Backend = &framework.Backend{

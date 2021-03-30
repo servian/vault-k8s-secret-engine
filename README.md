@@ -2,10 +2,10 @@
 [![GoReportCard][report-badge]][report]
 [![License][license-badge]][license]
 
-[report-badge]: https://goreportcard.com/badge/github.com/Servian/vault-k8-secret-engine
-[report]: https://goreportcard.com/report/github.com/Servian/vault-k8-secret-engine
-[license-badge]: https://img.shields.io/github/license/Servian/vault-k8-secret-engine.svg?style=flat
-[license]: https://github.com/Servian/vault-k8-secret-engine/license
+[report-badge]: https://goreportcard.com/badge/github.com/servian/vault-k8-secret-engine
+[report]: https://goreportcard.com/report/github.com/servian/vault-k8-secret-engine
+[license-badge]: https://img.shields.io/github/license/servian/vault-k8-secret-engine.svg?style=flat
+[license]: https://github.com/servian/vault-k8-secret-engine/license
 
 
 This project contains the source code for a [Hashicorp Vault](https://www.vaultproject.io/) plugin that provides

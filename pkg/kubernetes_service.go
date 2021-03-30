@@ -58,6 +58,10 @@ func (k *KubernetesService) GetServiceAccountSecret(pluginConfig *PluginConfig, 
 
 	ksa, err := clientSet.CoreV1().ServiceAccounts(sa.Namespace).Get(sa.Name, metav1.GetOptions{})
 
+	if err != nil {
+		return nil, err
+	}
+
 	var secrets []*ServiceAccountSecret
 	for _, secret := range ksa.Secrets {
 		secretName := secret.Name
@@ -151,7 +155,7 @@ func getClientSet(pluginConfig *PluginConfig) (*kubernetes.Clientset, error) {
 	}
 
 	conf := &rest.Config{
-		Host:            pluginConfig.BaseUrl,
+		Host:            pluginConfig.Host,
 		TLSClientConfig: tlsConfig,
 		BearerToken:     pluginConfig.ServiceAccountJWT,
 	}
