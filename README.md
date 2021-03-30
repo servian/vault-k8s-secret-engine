@@ -65,13 +65,13 @@ ttl | The time to live in seconds for the generated credential. The credentials 
 In this example we generate a new service account with the viewer permission to the default namespace. We also request that the credentials will be available for 30 minutes (1800 seconds).
 
 ```sh
-vault read k8s/service_account/default/viewer ttl_seconds=1800
+vault read k8s/service_account/default/viewer ttl=1800
 ```
 
 For automation in a CI/CD environment, making the output json makes it easier to interact with. This is the same example as above, but with the output format configured to be json.
 
 ```sh
-vault read k8s/service_account/default/viewer ttl_seconds=1800 --format=json
+vault read k8s/service_account/default/viewer ttl=1800 --format=json
 ```
 
 
@@ -94,7 +94,7 @@ admin_role | Name of the Kubernetes Cluster Role that will be used for a service
 editor_role | Name of the Kubernetes   ClusterRole that will be used for a service account with editor rights to a namespace | true | 
 viwer_role | Name of the kiubernetes ClusterRole that will be used for a service account with viewer rights to a namespae | true |
 jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | 
-host | The url to the Kubernetes management plane API. Pattern: https://<url>:<port>| true | 
+host | The url to the Kubernetes management plane API. Pattern: `https://<url>:<port>`| true | 
 max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 1800
 
 ### Usage example
