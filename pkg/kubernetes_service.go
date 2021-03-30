@@ -17,9 +17,10 @@ const roleBindingNamePrefix = "vault-rb-"
 const serviceAccountKind = "ServiceAccount"
 const roleKind = "Role"
 
-type KubernetesService struct {
-}
+// KubernetesService is an empty struct to wrap the Kubernetes service functions
+type KubernetesService struct{}
 
+// CreateServiceAccount creates a new service account
 func (k *KubernetesService) CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error) {
 	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
@@ -50,6 +51,7 @@ func (k *KubernetesService) CreateServiceAccount(pluginConfig *PluginConfig, nam
 	}, nil
 }
 
+// GetServiceAccountSecret retrieves the secrets for a newly created service account
 func (k *KubernetesService) GetServiceAccountSecret(pluginConfig *PluginConfig, sa *ServiceAccountDetails) ([]*ServiceAccountSecret, error) {
 	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
@@ -86,6 +88,7 @@ func (k *KubernetesService) GetServiceAccountSecret(pluginConfig *PluginConfig, 
 	return secrets, nil
 }
 
+// DeleteServiceAccount removes a services account from the Kubernetes server
 func (k *KubernetesService) DeleteServiceAccount(pluginConfig *PluginConfig, namespace string, serviceAccountName string) error {
 	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
@@ -98,6 +101,7 @@ func (k *KubernetesService) DeleteServiceAccount(pluginConfig *PluginConfig, nam
 	return nil
 }
 
+// CreateRoleBinding creates a new rolebinding for a service account in a specific namespace
 func (k *KubernetesService) CreateRoleBinding(pluginConfig *PluginConfig, namespace string, serviceAccountName string, roleName string) (*RoleBindingDetails, error) {
 	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {
@@ -135,6 +139,7 @@ func (k *KubernetesService) CreateRoleBinding(pluginConfig *PluginConfig, namesp
 	}, nil
 }
 
+// DeleteRoleBinding removes an existing role binding
 func (k *KubernetesService) DeleteRoleBinding(pluginConfig *PluginConfig, namespace string, roleBindingName string) error {
 	clientSet, err := getClientSet(pluginConfig)
 	if err != nil {

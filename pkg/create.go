@@ -87,7 +87,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType st
 
 	if len(secrets) != 1 {
 		b.kubernetesService.DeleteServiceAccount(pluginConfig, sa.Namespace, sa.Name)
-		return nil, fmt.Errorf("More than 1 secret found with the newly created service account, this is unexpected for the prupose of this plugin, please try again.")
+		return nil, fmt.Errorf("More than 1 secret found with the newly created service account, this is unexpected for the prupose of this plugin, please try again")
 	}
 
 	rb, err := b.kubernetesService.CreateRoleBinding(pluginConfig, namespace, sa.Name, roleName)

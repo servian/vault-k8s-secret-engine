@@ -12,7 +12,7 @@ import (
 const keyRoleName = "role_name"
 const keyClusterRoleName = "cluster_role_name"
 const keyKubeConfigPath = "kube_config_path"
-const keyTtlSeconds = "ttl_seconds"
+const keyTTLSeconds = "ttl"
 const keyNamespace = "namespace"
 const keyServiceAccountToken = "service_account_token"
 const keyServiceAccountUID = "service_account_uid"
@@ -38,7 +38,7 @@ func readSecret(b *backend) *framework.Path {
 				Description: "The namespace under which the service account should be created",
 				Required:    true,
 			},
-			keyTtlSeconds: &framework.FieldSchema{
+			keyTTLSeconds: &framework.FieldSchema{
 				Type:        framework.TypeInt,
 				Description: "The time to live for the token in seconds",
 				Default:     600,
@@ -69,7 +69,7 @@ func (b *backend) handleReadForRole(ctx context.Context, req *logical.Request, d
 		}
 
 		namespace := d.Get(keyNamespace).(string)
-		ttl := d.Get(keyTtlSeconds).(int)
+		ttl := d.Get(keyTTLSeconds).(int)
 		return b.createSecret(ctx, req.Storage, saType, namespace, ttl)
 	}
 
