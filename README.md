@@ -58,7 +58,7 @@ The path follows this pattern:
 
 parameter | description | required | default 
 -|-|-|-
-ttl | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead | false | 600
+ttl | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead | false | 600 (configurable)
 
 ### Usage example
 
@@ -96,6 +96,7 @@ viwer_role | Name of the kiubernetes ClusterRole that will be used for a service
 jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | 
 host | The url to the Kubernetes management plane API. Pattern: `https://<url>:<port>`| true | 
 max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 1800
+default_ttl | Default time to live in seconds when a user does not provide a tll. Can not be larger than max ttl | false | 600
 
 ### Usage example
 ```sh
@@ -105,7 +106,8 @@ editor_role="editor" \
 viewer_role="viewer" \
 jwt="${sa_token}" \
 ca_cert="${k8_cacert}" \
-max_ttl=600
+max_ttl=600 \ 
+default_ttl=500
 ```
 
 ### Why ClusterRole instead of a Role object in Kubernetes?

@@ -62,6 +62,10 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType st
 		return nil, err
 	}
 
+	if ttl <= 0 {
+		ttl = pluginConfig.DefaulTTL
+	}
+
 	if ttl > pluginConfig.MaxTTL {
 		ttl = pluginConfig.MaxTTL
 	}
