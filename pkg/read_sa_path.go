@@ -41,7 +41,6 @@ func readSecret(b *backend) *framework.Path {
 			keyTTLSeconds: &framework.FieldSchema{
 				Type:        framework.TypeInt,
 				Description: "The time to live for the token in seconds",
-				Default:     600,
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -69,6 +68,11 @@ func (b *backend) handleReadForRole(ctx context.Context, req *logical.Request, d
 		}
 
 		namespace := d.Get(keyNamespace).(string)
+
+		if namespace == "" {
+			return nil, fmt.Errorf("%s can not be empty", keyNamespace)
+		}
+
 		ttl := d.Get(keyTTLSeconds).(int)
 		return b.createSecret(ctx, req.Storage, saType, namespace, ttl)
 	}

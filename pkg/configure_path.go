@@ -17,11 +17,14 @@ const keyViewerRole = "viewer_role"
 const keyJWT = "jwt"
 const keyCACert = "ca_cert"
 const keyHost = "host"
+const keyDefaultTTL = "default_ttl"
+
 const configPath = "config"
 
 // PluginConfig contains all the configuration for the plugin
 type PluginConfig struct {
 	MaxTTL            int    `json:"max_ttl"`
+	DefaulTTL         int    `json:"default_ttl"`
 	AdminRole         string `json:"admin_role"`
 	EditorRole        string `json:"editor_role"`
 	ViewerRole        string `json:"viewer_role"`
@@ -38,6 +41,11 @@ func configurePlugin(b *backend) *framework.Path {
 				Type:        framework.TypeInt,
 				Description: "Time to live for the credentials returned.",
 				Default:     1800, // 30 minutes
+			},
+			keyDefaultTTL: {
+				Type:        framework.TypeInt,
+				Description: "Deafult time to live for when a user does not provide a TTL",
+				Default:     600, // 10 minutes
 			},
 			keyAdminRole: {
 				Type:        framework.TypeString,
@@ -88,29 +96,24 @@ func configurePlugin(b *backend) *framework.Path {
 }
 
 func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	ttl := d.Get(keyMaxTTL).(int)
-	adminRole := d.Get(keyAdminRole).(string)
-	editorRole := d.Get(keyEditorRole).(string)
-	viewerRole := d.Get(keyViewerRole).(string)
-	jwt := d.Get(keyJWT).(string)
-	cacert := d.Get(keyCACert).(string)
-	Host := d.Get(keyHost).(string)
 
-	_, err := url.Parse(Host)
-	if err != nil {
-		return logical.ErrorResponse("Host '%s' not a valid host: %s", Host, err), err
-	}
-
-	b.Logger().Info(fmt.Sprintf("MaxTTL specified is: %d", ttl))
 	config := PluginConfig{
-		MaxTTL:            ttl,
-		AdminRole:         adminRole,
-		EditorRole:        editorRole,
-		ViewerRole:        viewerRole,
-		ServiceAccountJWT: jwt,
-		CACert:            cacert,
-		Host:              Host,
+		MaxTTL:            d.Get(keyMaxTTL).(int),
+		DefaulTTL:         d.Get(keyDefaultTTL).(int),
+		AdminRole:         d.Get(keyAdminRole).(string),
+		EditorRole:        d.Get(keyEditorRole).(string),
+		ViewerRole:        d.Get(keyViewerRole).(string),
+		ServiceAccountJWT: d.Get(keyJWT).(string),
+		CACert:            d.Get(keyCACert).(string),
+		Host:              d.Get(keyHost).(string),
 	}
+
+	err := config.Validate()
+
+	if err != nil {
+		return logical.ErrorResponse("Configuration not valid: %s", err), err
+	}
+
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
 		return nil, err
@@ -131,6 +134,7 @@ func (b *backend) handleConfigRead(ctx context.Context, req *logical.Request, d 
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				keyMaxTTL:     config.MaxTTL,
+				keyDefaultTTL: config.DefaulTTL,
 				keyAdminRole:  config.AdminRole,
 				keyEditorRole: config.EditorRole,
 				keyViewerRole: config.ViewerRole,
@@ -157,4 +161,35 @@ func loadPluginConfig(ctx context.Context, s logical.Storage) (*PluginConfig, er
 		return nil, err
 	}
 	return conf, nil
+}
+
+// Validate validates the plugin config by checking all required values are correct
+func (c *PluginConfig) Validate() error {
+
+	_, err := url.Parse(c.Host)
+	if err != nil {
+		return fmt.Errorf("Host '%s' not a valid host: %s", c.Host, err)
+	}
+
+	if c.AdminRole == "" {
+		return fmt.Errorf("%s can not be empty", keyAdminRole)
+	}
+
+	if c.EditorRole == "" {
+		return fmt.Errorf("%s can not be empty", keyEditorRole)
+	}
+
+	if c.ViewerRole == "" {
+		return fmt.Errorf("%s can not be empty", keyViewerRole)
+	}
+
+	if c.ServiceAccountJWT == "" {
+		return fmt.Errorf("%s can not be empty", keyJWT)
+	}
+
+	if c.CACert == "" {
+		return fmt.Errorf("%s can not be empty", keyCACert)
+	}
+
+	return nil
 }
