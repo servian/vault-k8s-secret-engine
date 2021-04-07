@@ -110,7 +110,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType st
 		keyNamespace:           secrets[0].Namespace,
 		keyServiceAccountToken: secrets[0].Token,
 		keyServiceAccountName:  sa.Name,
-		keyKubeConfig:          generateKubeConfig(pluginConfig, secrets[0].CACert, secrets[0].Token, sa.Name),
+		keyKubeConfig:          generateKubeConfig(pluginConfig, secrets[0].CACert, secrets[0].Token, sa.Name, namespace),
 	}, map[string]interface{}{})
 
 	// set up TTL for secret so it gets automatically revoked
@@ -172,7 +172,7 @@ func getClusterRoleName(pluginConfig *PluginConfig, saType string) (string, erro
 	return "", fmt.Errorf("Service Account type '%s' is not a valid type", saType)
 }
 
-func generateKubeConfig(pluginConfig *PluginConfig, caCert string, token string, name string) string {
+func generateKubeConfig(pluginConfig *PluginConfig, caCert string, token string, name string, namespace string) string {
 	return fmt.Sprintf(`apiVersion: v1
 clusters:
 - cluster:
@@ -182,6 +182,7 @@ clusters:
 contexts:
 - context:
     cluster: %s
+    namespace: %s
     user: %s
   name: %s
 current-context: %s
@@ -190,7 +191,7 @@ preferences: {}
 users:
 - name: %s
   user:
-    token: %s`, base64Encode(caCert), pluginConfig.Host, name, name, name, name, name, name, token)
+    token: %s`, base64Encode(caCert), pluginConfig.Host, name, name, namespace, name, name, name, name, token)
 }
 
 func base64Encode(s string) string {
