@@ -176,6 +176,6 @@ make build
 ```
 
 
-## Potential future improvements
- 
-- output a kubeconf file as an option
+## License
+
+This secret engine is licensed as Apache 2.0, see the [license](LICENSE) file for more details
