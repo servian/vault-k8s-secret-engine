@@ -15,10 +15,10 @@ const keyKubeConfigPath = "kube_config_path"
 const keyTTLSeconds = "ttl"
 const keyNamespace = "namespace"
 const keyServiceAccountToken = "service_account_token"
-const keyServiceAccountUID = "service_account_uid"
 const keyServiceAccountName = "service_account_name"
 const keyRoleBindingName = "role_binding_name"
 const keySAType = "type"
+const keyKubeConfig = "kube_config"
 
 func getAllowedSATypes() []string {
 	return []string{"admin", "editor", "viewer"}

@@ -13,7 +13,7 @@ kube-down:
 	kind delete cluster
 
 vault-configure:
-	cd tests && .local_configure.sh
+	cd tests && ./local_configure.sh
 
 vault-run:
 	cd tests && ./local_build.sh

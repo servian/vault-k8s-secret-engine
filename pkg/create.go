@@ -2,6 +2,7 @@ package servian
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -27,10 +28,6 @@ func secret(b *backend) *framework.Secret {
 			keyServiceAccountToken: &framework.FieldSchema{
 				Type:        framework.TypeString,
 				Description: "The Service account token associated with the newly created service account",
-			},
-			keyServiceAccountUID: &framework.FieldSchema{
-				Type:        framework.TypeString,
-				Description: "UID of the newly created secret",
 			},
 			keyServiceAccountName: &framework.FieldSchema{
 				Type:        framework.TypeString,
@@ -113,9 +110,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType st
 		keyNamespace:           secrets[0].Namespace,
 		keyServiceAccountToken: secrets[0].Token,
 		keyServiceAccountName:  sa.Name,
-		keyServiceAccountUID:   sa.UID,
-		keyRoleName:            roleName,
-		keyRoleBindingName:     rb.Name,
+		keyKubeConfig:          generateKubeConfig(pluginConfig, secrets[0].CACert, secrets[0].Token, sa.Name),
 	}, map[string]interface{}{})
 
 	// set up TTL for secret so it gets automatically revoked
@@ -140,7 +135,6 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 
 	namespace := d.Get(keyNamespace).(string)
 	serviceAccountName := d.Get(keyServiceAccountName).(string)
-	serviceAccountUID := d.Get(keyServiceAccountUID).(string)
 	roleBindingName := d.Get(keyRoleBindingName).(string)
 
 	b.Logger().Info(fmt.Sprintf("deleting role binding with name: %s in namespace: %s", roleBindingName, namespace))
@@ -150,12 +144,12 @@ func (b *backend) revokeSecret(ctx context.Context, req *logical.Request, d *fra
 	}
 	b.Logger().Info(fmt.Sprintf("deleted role binding with name: %s in namespace: %s", roleBindingName, namespace))
 
-	b.Logger().Info(fmt.Sprintf("deleting service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, serviceAccountUID))
+	b.Logger().Info(fmt.Sprintf("deleting service account with name: %s in namespace: %s", serviceAccountName, namespace))
 	err = b.kubernetesService.DeleteServiceAccount(pluginConfig, namespace, serviceAccountName)
 	if err != nil {
 		return nil, err
 	}
-	b.Logger().Info(fmt.Sprintf("deleted service account with name: %s in namespace: %s with uid: %s", serviceAccountName, namespace, serviceAccountUID))
+	b.Logger().Info(fmt.Sprintf("deleted service account with name: %s in namespace: %s", serviceAccountName, namespace))
 
 	resp := b.Secret(secretAccessKeyType).Response(map[string]interface{}{
 		keyServiceAccountName: serviceAccountName,
@@ -176,4 +170,29 @@ func getClusterRoleName(pluginConfig *PluginConfig, saType string) (string, erro
 	}
 
 	return "", fmt.Errorf("Service Account type '%s' is not a valid type", saType)
+}
+
+func generateKubeConfig(pluginConfig *PluginConfig, caCert string, token string, name string) string {
+	return fmt.Sprintf(`apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: %s
+    server: %s
+  name: %s
+contexts:
+- context:
+    cluster: %s
+    user: %s
+  name: %s
+current-context: %s
+kind: Config
+preferences: {}
+users:
+- name: %s
+  user:
+    token: %s`, base64Encode(caCert), pluginConfig.Host, name, name, name, name, name, name, token)
+}
+
+func base64Encode(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }

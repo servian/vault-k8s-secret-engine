@@ -8,3 +8,25 @@ rules:
 - apiGroups: ["*"]
   resources: ["*"]
   verbs: ["*"]
+  
+---
+kind: ClusterRole 
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: editor_role
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+---
+kind: ClusterRole 
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: admin_role
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]

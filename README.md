@@ -74,6 +74,41 @@ For automation in a CI/CD environment, making the output json makes it easier to
 vault read k8s/service_account/default/viewer ttl=1800 --format=json
 ```
 
+#### Output
+
+When running the above command you can expect an output similar to what can be found below. The interesting thing can be found in the `data` section, which contains the details for the service account, as well as a kubeconfig file that can be used with kubernetes tools directly
+
+```json
+{
+  "request_id": "...",
+  "lease_id": "...",
+  "lease_duration": 600,
+  "renewable": false,
+  "data": {
+    "ca_cert": "...",
+    "kube_config": "...",
+    "namespace": "...",
+    "service_account_name": "...",
+    "service_account_token": "..."
+  },
+  "warnings": null
+}
+```
+
+#### Extracting and using the kubeconfig value
+
+We need to extract the `kube_config` content from the respones json, which we can do easily with `jq`, and then write it to a file for use later.
+
+```sh
+vault read k8s/service_account/default/viewer --format=json | jq -r .data.kube_config > tmp.conf
+```
+
+Once the file is written to disk, you can use it as a custom config file for kubectl or other tools like this
+
+```sh
+kubectl get pods -n default --kubeconfig='./tmp.conf'
+```
+
 
 ## Installing the secret engine plugin
 
