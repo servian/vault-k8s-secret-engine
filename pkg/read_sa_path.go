@@ -39,8 +39,8 @@ func readSecret(b *backend) *framework.Path {
 				Required:    true,
 			},
 			keyTTLSeconds: &framework.FieldSchema{
-				Type:        framework.TypeInt,
-				Description: "The time to live for the token in seconds",
+				Type:        framework.TypeDurationSecond,
+				Description: "The time to live for the token in seconds. If not set or set to 0, will use system default.",
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{

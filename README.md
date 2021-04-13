@@ -125,8 +125,8 @@ editor_role | Name of the Kubernetes   ClusterRole that will be used for a servi
 viwer_role | Name of the kiubernetes ClusterRole that will be used for a service account with viewer rights to a namespae | true |
 jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | 
 host | The url to the Kubernetes management plane API. Pattern: `https://<url>:<port>`| true | 
-max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 1800
-default_ttl | Default time to live in seconds when a user does not provide a tll. Can not be larger than max ttl | false | 600
+max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 0
+ttl | Default time to live in seconds when a user does not provide a tll. Can not be larger than max ttl | false | 0
 
 ### Usage example
 ```sh
@@ -136,8 +136,8 @@ editor_role="editor" \
 viewer_role="viewer" \
 jwt="${sa_token}" \
 ca_cert="${k8_cacert}" \
-max_ttl=600 \ 
-default_ttl=500
+max_ttl=24h \
+ttl=1h
 ```
 
 ### Why ClusterRole instead of a Role object in Kubernetes?
