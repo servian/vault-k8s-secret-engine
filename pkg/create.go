@@ -110,6 +110,7 @@ func (b *backend) createSecret(ctx context.Context, s logical.Storage, saType st
 		keyNamespace:           secrets[0].Namespace,
 		keyServiceAccountToken: secrets[0].Token,
 		keyServiceAccountName:  sa.Name,
+		keyRoleBindingName:     rb.Name,
 		keyKubeConfig:          generateKubeConfig(pluginConfig, secrets[0].CACert, secrets[0].Token, sa.Name, namespace),
 	}, map[string]interface{}{})
 
