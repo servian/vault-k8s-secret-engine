@@ -20,6 +20,21 @@ const roleKind = "Role"
 // KubernetesService is an empty struct to wrap the Kubernetes service functions
 type KubernetesService struct{}
 
+// CheckConnection checks connectivity with a cluster
+func (k *KubernetesService) CheckConnection(pluginConfig *PluginConfig) error {
+	clientSet, err := getClientSet(pluginConfig)
+	if err != nil {
+		return err
+	}
+
+	_, err = clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CreateServiceAccount creates a new service account
 func (k *KubernetesService) CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error) {
 	clientSet, err := getClientSet(pluginConfig)

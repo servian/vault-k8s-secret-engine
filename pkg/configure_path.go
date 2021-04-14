@@ -112,6 +112,11 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 		return logical.ErrorResponse("Configuration not valid: %s", err), err
 	}
 
+	// Check connectivity with k8s cluster
+	if err := b.kubernetesService.CheckConnection(&config); err != nil {
+		return nil, fmt.Errorf("Error verifying connection: %s", err)
+	}
+
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
 		return nil, err

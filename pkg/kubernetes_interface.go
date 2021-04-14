@@ -2,6 +2,9 @@ package servian
 
 // KubernetesInterface defines the core functions for the Kubernetes integration
 type KubernetesInterface interface {
+	// CheckConnection checks connectivity with a cluster
+	CheckConnection(pluginConfig *PluginConfig) error
+
 	// CreateServiceAccount creates a new service account
 	CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error)
 
