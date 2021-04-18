@@ -17,14 +17,14 @@ const keyViewerRole = "viewer_role"
 const keyJWT = "jwt"
 const keyCACert = "ca_cert"
 const keyHost = "host"
-const keyDefaultTTL = "default_ttl"
+const keyDefaultTTL = "ttl"
 
 const configPath = "config"
 
 // PluginConfig contains all the configuration for the plugin
 type PluginConfig struct {
 	MaxTTL            int    `json:"max_ttl"`
-	DefaulTTL         int    `json:"default_ttl"`
+	DefaulTTL         int    `json:"ttl"`
 	AdminRole         string `json:"admin_role"`
 	EditorRole        string `json:"editor_role"`
 	ViewerRole        string `json:"viewer_role"`
@@ -38,14 +38,14 @@ func configurePlugin(b *backend) *framework.Path {
 		Pattern: "config",
 		Fields: map[string]*framework.FieldSchema{
 			keyMaxTTL: {
-				Type:        framework.TypeInt,
-				Description: "Time to live for the credentials returned.",
-				Default:     1800, // 30 minutes
+				Type:        framework.TypeDurationSecond,
+				Description: "Time to live for the credentials returned. If not set or set to 0, will use system default.",
+				Default:     "1h",
 			},
 			keyDefaultTTL: {
-				Type:        framework.TypeInt,
-				Description: "Deafult time to live for when a user does not provide a TTL",
-				Default:     600, // 10 minutes
+				Type:        framework.TypeDurationSecond,
+				Description: "Deafult time to live for when a user does not provide a TTL. If not set or set to 0, will use system default.",
+				Default:     "10m",
 			},
 			keyAdminRole: {
 				Type:        framework.TypeString,
