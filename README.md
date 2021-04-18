@@ -16,7 +16,7 @@ This keeps the blast radius relatively small in case the credentials get leaked 
 
 ## Content
 
-1. [Architectural overview](#Architectural-overiew)
+1. [Architectural overview](#Architectural-overview)
 1. [Using the secret engine](#Using-the-secret-engine)
 1. [Installing the secret engine](#Installing-the-secret-engine)
 1. [Configure The Secret Engine](#Configure-the-secret-engine)
@@ -24,7 +24,7 @@ This keeps the blast radius relatively small in case the credentials get leaked 
 1. [Build from Source](#Build-from-source)
 1. [Local development](tests/readme.md)
 
-## Architectural overiew
+## Architectural overview
 
 This plugin is designed around a 1:1 mapping between an instantiation of the secret engine and a Kubernetes cluster. This approach allowed us to simplify the usage and configuration of the plugin, while still targeting the major usecase of providing dynamic and short lived credentials for Kubernetes. The focus is the ease of use for both administrators and the end user, and limiting the configuration complexity was an easy choice.
 
@@ -51,22 +51,22 @@ The path follows this pattern:
 
 **Note:** The generated service account is always limited to a single namespace, and if additional namespaces are required, multiple requests are required to genereate additional service accounts.
 
-parameter | description | required | default 
--|-|-|-
-ttl | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead | false | 600 (configurable)
+parameter | description | required | type | default 
+-|-|-|-|-
+ttl | The time to live in seconds for the generated credential. The credentials will automatically be removed at the end of the lifetime. If the value is higher than the max ttl defined in the plugin configuration, max ttl will be used instead. | false | [Duration](#Duration) | 10m (configurable)
 
 ### Usage example
 
-In this example we generate a new service account with the viewer permission to the default namespace. We also request that the credentials will be available for 30 minutes (1800 seconds).
+In this example we generate a new service account with the viewer permission to the default namespace. We also request that the credentials will be available for 30 minutes.
 
 ```sh
-vault read k8s/service_account/default/viewer ttl=1800
+vault read k8s/service_account/default/viewer ttl=30m
 ```
 
 For automation in a CI/CD environment, making the output json makes it easier to interact with. This is the same example as above, but with the output format configured to be json.
 
 ```sh
-vault read k8s/service_account/default/viewer ttl=1800 --format=json
+vault read k8s/service_account/default/viewer ttl=30m --format=json
 ```
 
 #### Output
@@ -118,15 +118,15 @@ Each instantiation of the secrete engine is mapped to a single Kubernetes cluste
 
 The secrete engine is configured using the `<mount path>/configure` path
 
-parameter | description | required | default 
--|-|-|-
-admin_role | Name of the Kubernetes Cluster Role that will be used for a service account with admin rights to a namespace| true |
-editor_role | Name of the Kubernetes   ClusterRole that will be used for a service account with editor rights to a namespace | true | 
-viwer_role | Name of the kiubernetes ClusterRole that will be used for a service account with viewer rights to a namespae | true |
-jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | 
-host | The url to the Kubernetes management plane API. Pattern: `https://<url>:<port>`| true | 
-max_ttl | Maximum lifetime in seconds for a service account created using the  | false | 0
-ttl | Default time to live in seconds when a user does not provide a tll. Can not be larger than max ttl | false | 0
+parameter | description | required | type | default 
+-|-|-|-|-
+admin_role | Name of the Kubernetes Cluster Role that will be used for a service account with admin rights to a namespace| true | [string](#String) |
+editor_role | Name of the Kubernetes   ClusterRole that will be used for a service account with editor rights to a namespace | true | [string](#String) | 
+viwer_role | Name of the kiubernetes ClusterRole that will be used for a service account with viewer rights to a namespae | true | [string](#String)
+jwt | The JWT for the service account that vault use to authenticate to Kubernetes and create service accounts and RoleBindings | true | [string](#String) 
+host | The url to the Kubernetes management plane API. Pattern: `https://<url>:<port>`| true | [string](#String)
+max_ttl | Maximum lifetime for a service account created using the  | false | [duration](#Duration) | 1h
+ttl | Default time to live when a user does not provide a tll. If larger than max ttl, max ttl will be used instead | false | [duration](#Duration) | 10m
 
 ### Usage example
 ```sh
@@ -155,6 +155,22 @@ Configuring policies for the secret engine follows normal vault conventions by p
 ```text
 <mount path>/service_account/<k8s namespace>/<service account type>
 ```
+## Types 
+
+### Duration
+
+The duration type is an simplication on a an integer input for seconds. Instead of calculating the number of seconds in an hour and then type in 3600, you can instead type in 1h into the command line.
+
+**Supported conventions:**
+* 1s => 0 seconds
+* 1m => 1 minute
+* 1h => 1 hour
+* 1ms => 1 millisecond
+* 1 => 1 second
+
+### String
+
+The string type is plain text input, either wrapped in quotation marks for a multi-word phrase or as a single unquoted word.
 
 ## Build from source
 

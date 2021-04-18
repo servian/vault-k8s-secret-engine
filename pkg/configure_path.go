@@ -40,10 +40,12 @@ func configurePlugin(b *backend) *framework.Path {
 			keyMaxTTL: {
 				Type:        framework.TypeDurationSecond,
 				Description: "Time to live for the credentials returned. If not set or set to 0, will use system default.",
+				Default:     "1h",
 			},
 			keyDefaultTTL: {
 				Type:        framework.TypeDurationSecond,
 				Description: "Deafult time to live for when a user does not provide a TTL. If not set or set to 0, will use system default.",
+				Default:     "10m",
 			},
 			keyAdminRole: {
 				Type:        framework.TypeString,
