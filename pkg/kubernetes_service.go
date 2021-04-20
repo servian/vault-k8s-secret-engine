@@ -20,6 +20,25 @@ const roleKind = "Role"
 // KubernetesService is an empty struct to wrap the Kubernetes service functions
 type KubernetesService struct{}
 
+// CheckClusterRoleResources checks if ClusterRole resource exists for each role
+func (k *KubernetesService) CheckClusterRoleResources(pluginConfig *PluginConfig) error {
+	clientSet, err := getClientSet(pluginConfig)
+	if err != nil {
+		return err
+	}
+
+	roles := []string{pluginConfig.AdminRole, pluginConfig.EditorRole, pluginConfig.ViewerRole}
+
+	for _, role := range roles {
+		_, err = clientSet.RbacV1().ClusterRoles().Get(role, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CreateServiceAccount creates a new service account
 func (k *KubernetesService) CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error) {
 	clientSet, err := getClientSet(pluginConfig)

@@ -114,6 +114,11 @@ func (b *backend) handleConfigWrite(ctx context.Context, req *logical.Request, d
 		return logical.ErrorResponse("Configuration not valid: %s", err), err
 	}
 
+	// Check ClusterRole resources in k8s cluster
+	if err := b.kubernetesService.CheckClusterRoleResources(&config); err != nil {
+		return nil, fmt.Errorf("Error: %s", err)
+	}
+
 	entry, err := logical.StorageEntryJSON(configPath, config)
 	if err != nil {
 		return nil, err
