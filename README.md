@@ -13,6 +13,9 @@ on-demand (dynamic) credentials for a short-lived [k8s](https://kubernetes.io/) 
 
 This keeps the blast radius relatively small in case the credentials get leaked or abused.
 
+## Deprecation notice
+
+A similar feature has beed added to HashiCorp Vault by the [Kubernetes Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/kubernetes) added in v1.11.0 making this plugin unnecessary. 
 
 ## Content
 
