@@ -2,6 +2,9 @@ package servian
 
 // KubernetesInterface defines the core functions for the Kubernetes integration
 type KubernetesInterface interface {
+	// CheckClusterRoleResources checks if ClusterRole resource exists for each role
+	CheckClusterRoleResources(pluginConfig *PluginConfig) error
+
 	// CreateServiceAccount creates a new service account
 	CreateServiceAccount(pluginConfig *PluginConfig, namespace string) (*ServiceAccountDetails, error)
 
